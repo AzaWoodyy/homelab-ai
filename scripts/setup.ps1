@@ -1,42 +1,59 @@
-Write-Host "Checking Ollama..."
-ollama --version
+param(
+    [switch]$Update
+)
 
-Write-Host "Checking Docker..."
-docker --version
+. (Join-Path $PSScriptRoot "common.ps1")
 
-$root = Split-Path $PSScriptRoot -Parent
-$configPath = Join-Path $root "config\models.json"
+Initialize-HomelabScript -ScriptName "setup"
 
-if (-not (Test-Path $configPath)) {
-    throw "Config file not found: $configPath"
-}
+$config = Get-HomelabConfig
+$models = Get-ConfiguredModels
 
-$models = Get-Content $configPath | ConvertFrom-Json
+Write-Log "Checking Ollama..." "STEP"
+$ollamaPath = Get-OllamaPath
+Write-Log (Get-CommandVersion -CommandPath $ollamaPath) "OK"
 
-Write-Host "Getting installed models..."
+Write-Log "Checking Docker..." "STEP"
+$dockerPath = Get-DockerPath
+Write-Log (Get-CommandVersion -CommandPath $dockerPath) "OK"
 
-$installedModels = @()
+Write-Log "Validating Docker Compose configuration..." "STEP"
+Test-ComposeConfiguration -Config $config
+Write-Log "Docker Compose configuration is valid." "OK"
 
-try {
-    $installedModels = (ollama list) |
-        Select-Object -Skip 1 |
-        ForEach-Object {
-            ($_ -split '\s+')[0]
-        }
-}
-catch {
-    Write-Warning "Unable to retrieve installed models."
-}
+Write-Log "Ensuring Ollama is running..." "STEP"
+Start-Ollama -Config $config -OllamaPath $ollamaPath
+Wait-ForOllamaReady -OllamaPath $ollamaPath
+Write-Log "Ollama is ready." "OK"
 
-foreach ($model in $models.models) {
+Write-Log "Getting installed models..." "STEP"
+$installedModels = Get-InstalledOllamaModels -OllamaPath $ollamaPath
 
-    if ($installedModels -contains $model) {
-        Write-Host "[OK] $model already installed"
+foreach ($model in $models) {
+    $isInstalled = $model -in $installedModels
+
+    if ($isInstalled -and -not $Update) {
+        Write-Log "$model already installed" "OK"
         continue
     }
 
-    Write-Host "[PULL] $model"
-    ollama pull $model
+    if ($isInstalled -and $Update) {
+        Write-Log "Updating $model" "STEP"
+    }
+    else {
+        Write-Log "Pulling $model" "STEP"
+    }
+
+    $pullOutput = & $ollamaPath pull $model 2>&1
+
+    if ($LASTEXITCODE -ne 0) {
+        throw ($pullOutput | Out-String).Trim()
+    }
+
+    Write-Log "$model is ready." "OK"
 }
 
-Write-Host "Setup completed."
+$installedModels = Get-InstalledOllamaModels -OllamaPath $ollamaPath
+Assert-ConfiguredModelsInstalled -ConfiguredModels $models -InstalledModels $installedModels
+
+Write-Log "Setup completed." "OK"
