@@ -91,9 +91,20 @@ Main runtime config lives in `config\homelab.json`:
 ```json
 {
   "hostname": "homelab-ai",
-  "openwebui_port": 3000
+  "openwebui_port": 3000,
+  "openwebui_image_tag": "v0.9.5"
 }
 ```
+
+Local-only secret overrides live in `config\homelab.local.json`:
+
+```json
+{
+  "webui_secret_key": "replace-with-a-long-random-secret"
+}
+```
+
+`config\homelab.local.json` is ignored by git. You can copy `config\homelab.local.example.json` as a starting point, or set `WEBUI_SECRET_KEY` in your shell environment instead.
 
 Model config lives in `config\models.json`:
 
@@ -113,5 +124,6 @@ Every script run writes a timestamped log file to `logs/`. Those logs are local 
 
 ## Docs
 
-- [Architecture V2](D:/dev/homelab-ai/docs/architecture.md)
-- [Repository Map](D:/dev/homelab-ai/docs/repository-map.md)
+- [Changelog](./CHANGELOG.md)
+- [Architecture V2](./docs/architecture.md)
+- [Repository Map](./docs/repository-map.md)

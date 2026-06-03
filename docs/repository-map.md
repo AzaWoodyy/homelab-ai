@@ -8,14 +8,23 @@ This document gives the short version of what each file is for, so a new person 
 - Project entry point.
 - Explains the purpose of the repo, the main workflow, and the most important commands.
 
+`CHANGELOG.md`
+- Release notes for the repo.
+- Summarizes what changed between published versions.
+
 `.gitignore`
 - Ignores local-only working files such as script logs.
+- Ignores the local secret override file for Open WebUI.
 
 ## config/
 
 `config/homelab.json`
 - Main runtime settings for the local stack.
-- Right now it defines the hostname and the Open WebUI port.
+- Defines the hostname, the Open WebUI port, and the pinned Open WebUI image tag.
+
+`config/homelab.local.example.json`
+- Example local-only override file for secrets.
+- Shows where to place `WEBUI_SECRET_KEY` without committing it.
 
 `config/models.json`
 - List of Ollama models the repo expects to exist locally.
@@ -41,7 +50,7 @@ This document gives the short version of what each file is for, so a new person 
 
 `scripts/common.ps1`
 - Shared PowerShell helper functions.
-- Handles logging, config loading, dependency checks, Ollama control, Docker Compose calls, and health validation.
+- Handles logging, config loading, dependency checks, Ollama control, Docker Compose calls, secret injection, and health validation.
 
 `scripts/setup.ps1`
 - Validates the local prerequisites.
@@ -55,6 +64,7 @@ This document gives the short version of what each file is for, so a new person 
 
 `scripts/stop.ps1`
 - Stops Open WebUI.
+- Keeps the existing container definition so the next start can reuse it.
 - Stops Ollama afterward to free resources.
 
 `scripts/test.ps1`

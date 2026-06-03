@@ -1,4 +1,5 @@
 {
-    "hostname": "homelab-ai",
-    "openwebui_port": 3000
-  }
+  "hostname": "homelab-ai",
+  "openwebui_port": 3000,
+  "openwebui_image_tag": "v0.9.5"
+}

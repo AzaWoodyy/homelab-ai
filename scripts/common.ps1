@@ -47,14 +47,73 @@ function Write-Log {
     }
 }
 
+function Invoke-NativeCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+
+        [string[]]$Arguments = @()
+    )
+
+    $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ("homelab-ai-stdout-{0}.log" -f [guid]::NewGuid())
+    $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ("homelab-ai-stderr-{0}.log" -f [guid]::NewGuid())
+
+    try {
+        $process = Start-Process `
+            -FilePath $FilePath `
+            -ArgumentList $Arguments `
+            -NoNewWindow `
+            -Wait `
+            -PassThru `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath
+
+        $stdout = if (Test-Path -LiteralPath $stdoutPath) {
+            Get-Content -Raw -LiteralPath $stdoutPath
+        }
+        else {
+            ""
+        }
+
+        $stderr = if (Test-Path -LiteralPath $stderrPath) {
+            Get-Content -Raw -LiteralPath $stderrPath
+        }
+        else {
+            ""
+        }
+
+        return [pscustomobject]@{
+            ExitCode = $process.ExitCode
+            StdOut   = $stdout
+            StdErr   = $stderr
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $stdoutPath) {
+            Remove-Item -LiteralPath $stdoutPath -ErrorAction SilentlyContinue
+        }
+
+        if (Test-Path -LiteralPath $stderrPath) {
+            Remove-Item -LiteralPath $stderrPath -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Get-HomelabConfig {
     $configPath = Join-Path $script:HomelabRoot "config\homelab.json"
+    $localConfigPath = Join-Path $script:HomelabRoot "config\homelab.local.json"
 
     if (-not (Test-Path -LiteralPath $configPath)) {
         throw "Config file not found: $configPath"
     }
 
     $rawConfig = Get-Content -Raw -LiteralPath $configPath | ConvertFrom-Json
+    $localConfig = $null
+
+    if (Test-Path -LiteralPath $localConfigPath) {
+        $localConfig = Get-Content -Raw -LiteralPath $localConfigPath | ConvertFrom-Json
+    }
+
     $hostname = [string]$rawConfig.hostname
 
     if ([string]::IsNullOrWhiteSpace($hostname)) {
@@ -71,14 +130,69 @@ function Get-HomelabConfig {
         throw "openwebui_port must be between 1 and 65535."
     }
 
+    $imageTag = [string]$rawConfig.openwebui_image_tag
+
+    if ([string]::IsNullOrWhiteSpace($imageTag)) {
+        $imageTag = "v0.9.5"
+    }
+
+    $imageTag = $imageTag.Trim()
+
+    $webUiSecretKey = ""
+
+    if ($localConfig -and $null -ne $localConfig.webui_secret_key) {
+        $webUiSecretKey = [string]$localConfig.webui_secret_key
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($env:WEBUI_SECRET_KEY)) {
+        $webUiSecretKey = [string]$env:WEBUI_SECRET_KEY
+    }
+
+    $webUiSecretKey = $webUiSecretKey.Trim()
+
     return [pscustomobject]@{
         hostname                 = $hostname
         openwebui_port           = $port
+        openwebui_image_tag      = $imageTag
         openwebui_container_name = "open-webui"
         ollama_service_name      = "Ollama"
         ollama_host              = "host.docker.internal"
         ollama_port              = 11434
+        webui_secret_key         = $webUiSecretKey
     }
+}
+
+function Assert-WebUiSecretKeyConfigured {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    if ([string]::IsNullOrWhiteSpace([string]$Config.webui_secret_key)) {
+        throw "WEBUI_SECRET_KEY is required. Set it in config\\homelab.local.json or the WEBUI_SECRET_KEY environment variable."
+    }
+}
+
+function Normalize-OllamaModelName {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ModelName
+    )
+
+    $normalized = $ModelName.Trim()
+
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        return $normalized
+    }
+
+    $lastSlashIndex = $normalized.LastIndexOf("/")
+    $lastColonIndex = $normalized.LastIndexOf(":")
+
+    if ($lastColonIndex -gt $lastSlashIndex) {
+        return $normalized
+    }
+
+    return "$normalized`:latest"
 }
 
 function Get-ConfiguredModels {
@@ -107,12 +221,13 @@ function Get-ConfiguredModels {
     }
 
     $duplicates = $models |
+        ForEach-Object { Normalize-OllamaModelName -ModelName $_ } |
         Group-Object |
         Where-Object Count -gt 1 |
         Select-Object -ExpandProperty Name
 
     if ($duplicates) {
-        throw "Duplicate models found in config/models.json: $($duplicates -join ', ')"
+        throw "Duplicate models found in config/models.json after normalization: $($duplicates -join ', ')"
     }
 
     return $models
@@ -165,13 +280,14 @@ function Get-CommandVersion {
         [string]$CommandPath
     )
 
-    $output = & $CommandPath --version 2>&1
+    $result = Invoke-NativeCommand -FilePath $CommandPath -Arguments @("--version")
 
-    if ($LASTEXITCODE -ne 0) {
-        throw ($output | Out-String).Trim()
+    if ($result.ExitCode -ne 0) {
+        $message = ($result.StdErr + [Environment]::NewLine + $result.StdOut).Trim()
+        throw $message
     }
 
-    return ($output | Select-Object -First 1).ToString().Trim()
+    return (($result.StdOut -split "\r?\n") | Select-Object -First 1).Trim()
 }
 
 function Get-OllamaService {
@@ -190,8 +306,8 @@ function Test-OllamaReady {
     )
 
     try {
-        $output = & $OllamaPath list 2>&1
-        return ($LASTEXITCODE -eq 0)
+        $result = Invoke-NativeCommand -FilePath $OllamaPath -Arguments @("list")
+        return ($result.ExitCode -eq 0)
     }
     catch {
         return $false
@@ -286,13 +402,14 @@ function Get-InstalledOllamaModels {
         [string]$OllamaPath
     )
 
-    $output = & $OllamaPath list 2>&1
+    $result = Invoke-NativeCommand -FilePath $OllamaPath -Arguments @("list")
 
-    if ($LASTEXITCODE -ne 0) {
-        throw ($output | Out-String).Trim()
+    if ($result.ExitCode -ne 0) {
+        $message = ($result.StdErr + [Environment]::NewLine + $result.StdOut).Trim()
+        throw $message
     }
 
-    return $output |
+    return ($result.StdOut -split "\r?\n") |
         Select-Object -Skip 1 |
         ForEach-Object { $_.ToString().Trim() } |
         Where-Object { $_ } |
@@ -305,8 +422,12 @@ function Set-ComposeEnvironment {
         [pscustomobject]$Config
     )
 
+    Assert-WebUiSecretKeyConfigured -Config $Config
+
     $env:OPENWEBUI_PORT = [string]$Config.openwebui_port
+    $env:OPENWEBUI_IMAGE_TAG = [string]$Config.openwebui_image_tag
     $env:OLLAMA_BASE_URL = "http://$($Config.ollama_host):$($Config.ollama_port)"
+    $env:WEBUI_SECRET_KEY = [string]$Config.webui_secret_key
 }
 
 function Invoke-DockerCompose {
@@ -347,13 +468,76 @@ function Get-OpenWebUiHealth {
 
     $null = Get-DockerPath
 
-    $output = & docker inspect --format '{{if .State.Running}}{{if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}{{else}}stopped{{end}}' $Config.openwebui_container_name 2>$null
+    $result = Invoke-NativeCommand -FilePath "docker" -Arguments @(
+        "inspect",
+        "--format",
+        "{{if .State.Running}}{{if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}{{else}}stopped{{end}}",
+        $Config.openwebui_container_name
+    )
 
-    if ($LASTEXITCODE -ne 0) {
+    if ($result.ExitCode -ne 0) {
         return "missing"
     }
 
-    return ($output | Select-Object -First 1).ToString().Trim()
+    return (($result.StdOut -split "\r?\n") | Select-Object -First 1).Trim()
+}
+
+function Get-OpenWebUiStateSummary {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    $null = Get-DockerPath
+
+    $result = Invoke-NativeCommand -FilePath "docker" -Arguments @(
+        "inspect",
+        "--format",
+        "{{if .State}}{{.State.Status}}{{if .State.Restarting}} (restarting){{end}}{{if .State.Health}} health={{.State.Health.Status}}{{end}}{{if .State.ExitCode}} exit={{.State.ExitCode}}{{end}}{{end}}",
+        $Config.openwebui_container_name
+    )
+
+    if ($result.ExitCode -ne 0) {
+        return "missing"
+    }
+
+    return (($result.StdOut -split "\r?\n") | Select-Object -First 1).Trim()
+}
+
+function Get-OpenWebUiRecentLogs {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config,
+
+        [int]$Tail = 40
+    )
+
+    $null = Get-DockerPath
+
+    $result = Invoke-NativeCommand -FilePath "docker" -Arguments @(
+        "logs",
+        "--tail",
+        $Tail,
+        $Config.openwebui_container_name
+    )
+
+    $combinedOutput = @()
+
+    if (-not [string]::IsNullOrWhiteSpace($result.StdOut)) {
+        $combinedOutput += ($result.StdOut -split "\r?\n")
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($result.StdErr)) {
+        $combinedOutput += ($result.StdErr -split "\r?\n")
+    }
+
+    if ($result.ExitCode -ne 0 -and $combinedOutput.Count -eq 0) {
+        return @()
+    }
+
+    return $combinedOutput |
+        ForEach-Object { $_.ToString().TrimEnd() } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 }
 
 function Test-HttpEndpoint {
@@ -402,7 +586,16 @@ function Wait-ForOpenWebUi {
         Start-Sleep -Seconds $DelaySeconds
     }
 
-    throw "Open WebUI did not become ready at $url."
+    $stateSummary = Get-OpenWebUiStateSummary -Config $Config
+    $recentLogs = Get-OpenWebUiRecentLogs -Config $Config -Tail 20
+    $logSummary = if ($recentLogs.Count -gt 0) {
+        " Recent logs: $($recentLogs -join ' | ')"
+    }
+    else {
+        ""
+    }
+
+    throw "Open WebUI did not become ready at $url. Container state: $stateSummary.$logSummary"
 }
 
 function Assert-ConfiguredModelsInstalled {
@@ -414,7 +607,13 @@ function Assert-ConfiguredModelsInstalled {
         [string[]]$InstalledModels
     )
 
-    $missingModels = $ConfiguredModels | Where-Object { $_ -notin $InstalledModels }
+    $normalizedInstalledModels = $InstalledModels |
+        ForEach-Object { Normalize-OllamaModelName -ModelName $_ } |
+        Select-Object -Unique
+
+    $missingModels = $ConfiguredModels | Where-Object {
+        (Normalize-OllamaModelName -ModelName $_) -notin $normalizedInstalledModels
+    }
 
     if ($missingModels) {
         throw "Missing configured models: $($missingModels -join ', ')"

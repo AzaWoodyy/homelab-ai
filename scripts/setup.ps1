@@ -44,10 +44,11 @@ foreach ($model in $models) {
         Write-Log "Pulling $model" "STEP"
     }
 
-    $pullOutput = & $ollamaPath pull $model 2>&1
+    $pullResult = Invoke-NativeCommand -FilePath $ollamaPath -Arguments @("pull", $model)
 
-    if ($LASTEXITCODE -ne 0) {
-        throw ($pullOutput | Out-String).Trim()
+    if ($pullResult.ExitCode -ne 0) {
+        $message = ($pullResult.StdErr + [Environment]::NewLine + $pullResult.StdOut).Trim()
+        throw $message
     }
 
     Write-Log "$model is ready." "OK"
