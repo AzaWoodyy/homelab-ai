@@ -1,6 +1,7 @@
 {
   "models": [
     "qwen3:14b",
-    "qwen3:32b"
+    "qwen3:32b",
+    "qwen3:8b"
   ]
 }
