@@ -49,8 +49,12 @@ This document gives the short version of what each file is for, so a new person 
 ## scripts/
 
 `scripts/common.ps1`
-- Shared PowerShell helper functions.
-- Handles logging, config loading, dependency checks, Ollama control, Docker Compose calls, secret injection, and health validation.
+- Shared PowerShell bootstrap file.
+- Sets repo-level script state and loads the focused helpers in `scripts/lib/`.
+
+`scripts/lib/*.ps1`
+- Focused PowerShell helper files grouped by responsibility.
+- Covers logging, native command execution, config loading, dependency discovery, model validation, Ollama control, Docker Compose calls, and HTTP health checks.
 
 `scripts/setup.ps1`
 - Validates the local prerequisites.
