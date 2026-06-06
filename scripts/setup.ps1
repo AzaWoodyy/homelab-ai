@@ -1,5 +1,5 @@
 param(
-    [switch]$Update
+    [switch]$RefreshModels
 )
 
 . (Join-Path $PSScriptRoot "common.ps1")
@@ -32,13 +32,13 @@ $installedModels = Get-InstalledOllamaModels -OllamaPath $ollamaPath
 foreach ($model in $models) {
     $isInstalled = $model -in $installedModels
 
-    if ($isInstalled -and -not $Update) {
+    if ($isInstalled -and -not $RefreshModels) {
         Write-Log "$model already installed" "OK"
         continue
     }
 
-    if ($isInstalled -and $Update) {
-        Write-Log "Updating $model" "STEP"
+    if ($isInstalled -and $RefreshModels) {
+        Write-Log "Refreshing $model" "STEP"
     }
     else {
         Write-Log "Pulling $model" "STEP"

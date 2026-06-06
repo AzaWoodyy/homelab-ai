@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 - Structured script logs written to `logs/` for setup, start, stop, status, and test runs.
 - New `scripts/test.ps1` end-to-end validation flow for config, Docker, Ollama, installed models, container health, and HTTP reachability.
 - New `scripts/status.ps1` quick health summary for the local stack.
-- New `scripts/update.ps1` wrapper for refreshing configured models.
+- New `scripts/refresh-models.ps1` wrapper for refreshing configured models.
 - New `docs/repository-map.md` to document the purpose of each tracked file.
 - Docker health check for the Open WebUI container.
 - Local-only `config/homelab.local.json` override support for persistent Open WebUI secrets.
@@ -18,7 +18,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Native command execution now preserves arguments with spaces, fixing Docker health checks that use `docker inspect --format`.
-- `scripts/setup.ps1` now validates Docker Compose configuration, ensures Ollama is ready, supports `-Update`, and verifies configured models after pull operations.
+- `scripts/setup.ps1` now validates Docker Compose configuration, ensures Ollama is ready, supports `-RefreshModels`, and verifies configured models after pull operations.
 - `scripts/start.ps1` now waits for Open WebUI to become reachable before returning and prints both local and Tailscale URLs.
 - `scripts/common.ps1` now acts as a small script loader, with focused helper implementations split into `scripts/lib/`.
 - `scripts/stop.ps1` now uses the shared helper layer and gives clearer shutdown logging.

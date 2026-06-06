@@ -38,10 +38,6 @@ This document gives the short version of what each file is for, so a new person 
 
 ## docs/
 
-`docs/architecture.md`
-- High-level explanation of the V2 system design.
-- Useful when you want the "why this looks like this" view.
-
 `docs/repository-map.md`
 - This file.
 - Useful when you want the "what is each file for" view.
@@ -59,7 +55,7 @@ This document gives the short version of what each file is for, so a new person 
 `scripts/setup.ps1`
 - Validates the local prerequisites.
 - Ensures configured models exist locally.
-- Supports `-Update` to force model refreshes.
+- Supports `-RefreshModels` to force model refreshes.
 
 `scripts/start.ps1`
 - Starts Ollama.
@@ -79,8 +75,8 @@ This document gives the short version of what each file is for, so a new person 
 - Short operational summary for the current machine state.
 - Useful when you want a quick answer instead of running full validation.
 
-`scripts/update.ps1`
-- Small wrapper around `setup.ps1 -Update`.
+`scripts/refresh-models.ps1`
+- Small wrapper around `setup.ps1 -RefreshModels`.
 - Exists mainly to make "refresh configured models" obvious.
 
 ## logs/

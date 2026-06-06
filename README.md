@@ -63,7 +63,7 @@ Stop the stack:
 - Reads configured models from `config\models.json`.
 - Pulls only missing models.
 
-`.\scripts\setup.ps1 -Update`
+`.\scripts\setup.ps1 -RefreshModels`
 - Re-pulls configured models even if they are already installed.
 
 `.\scripts\start.ps1`
@@ -81,8 +81,8 @@ Stop the stack:
 `.\scripts\status.ps1`
 - Shows the current stack state in a quick human-readable form.
 
-`.\scripts\update.ps1`
-- Convenience wrapper for `setup.ps1 -Update`.
+`.\scripts\refresh-models.ps1`
+- Convenience wrapper for `setup.ps1 -RefreshModels`.
 
 ## Config
 
