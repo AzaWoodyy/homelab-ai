@@ -8,7 +8,13 @@ $config = Get-HomelabConfig
 $ollamaPath = Get-OllamaPath
 
 $ollamaState = if (Test-OllamaReady -OllamaPath $ollamaPath) { "ready" } else { "not responding" }
-$openWebUiHealth = Get-OpenWebUiHealth -Config $config
+$dockerDaemonState = if (Test-DockerDaemonReady) { "ready" } else { "not running" }
+$openWebUiHealth = if ($dockerDaemonState -eq "ready") {
+    Get-OpenWebUiHealth -Config $config
+}
+else {
+    "daemon-unavailable"
+}
 $localUrl = "http://127.0.0.1:$($config.openwebui_port)"
 $httpStatus = Test-HttpEndpoint -Url $localUrl -TimeoutSeconds 5
 $installedModels = @()
@@ -20,6 +26,7 @@ if ($ollamaState -eq "ready") {
 Write-Log "Hostname: $($config.hostname)" "INFO"
 Write-Log "Open WebUI port: $($config.openwebui_port)" "INFO"
 Write-Log "Ollama: $ollamaState" "INFO"
+Write-Log "Docker daemon: $dockerDaemonState" "INFO"
 Write-Log "Open WebUI container: $openWebUiHealth" "INFO"
 
 if ($httpStatus.Ok) {

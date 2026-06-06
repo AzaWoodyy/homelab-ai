@@ -1,3 +1,18 @@
+function Test-DockerDaemonReady {
+    $dockerPath = Get-DockerPath
+    $result = Invoke-NativeCommand -FilePath $dockerPath -Arguments @("info", "--format", "{{.ServerVersion}}")
+
+    return ($result.ExitCode -eq 0)
+}
+
+function Assert-DockerDaemonReady {
+    if (Test-DockerDaemonReady) {
+        return
+    }
+
+    throw "Docker daemon is not running. Start Docker Desktop (or the Docker engine) and try again."
+}
+
 function Set-ComposeEnvironment {
     param(
         [Parameter(Mandatory = $true)]
@@ -18,10 +33,15 @@ function Invoke-DockerCompose {
         [pscustomobject]$Config,
 
         [Parameter(Mandatory = $true)]
-        [string[]]$Arguments
+        [string[]]$Arguments,
+
+        [switch]$RequireDaemon
     )
 
-    $null = Get-DockerPath
+    if ($RequireDaemon) {
+        Assert-DockerDaemonReady
+    }
+
     $composePath = Get-ComposePath
 
     Set-ComposeEnvironment -Config $Config
@@ -50,6 +70,10 @@ function Get-OpenWebUiHealth {
 
     $null = Get-DockerPath
 
+    if (-not (Test-DockerDaemonReady)) {
+        return "daemon-unavailable"
+    }
+
     $result = Invoke-NativeCommand -FilePath "docker" -Arguments @(
         "inspect",
         "--format",
@@ -71,6 +95,10 @@ function Get-OpenWebUiStateSummary {
     )
 
     $null = Get-DockerPath
+
+    if (-not (Test-DockerDaemonReady)) {
+        return "daemon unavailable"
+    }
 
     $result = Invoke-NativeCommand -FilePath "docker" -Arguments @(
         "inspect",
@@ -95,6 +123,10 @@ function Get-OpenWebUiRecentLogs {
     )
 
     $null = Get-DockerPath
+
+    if (-not (Test-DockerDaemonReady)) {
+        return @("Docker daemon is not running.")
+    }
 
     $result = Invoke-NativeCommand -FilePath "docker" -Arguments @(
         "logs",

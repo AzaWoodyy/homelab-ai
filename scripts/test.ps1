@@ -6,6 +6,18 @@ Initialize-HomelabScript -ScriptName "test"
 
 $failures = New-Object System.Collections.Generic.List[string]
 
+function New-SkippedCheckResult {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Reason
+    )
+
+    return [pscustomobject]@{
+        Skipped = $true
+        Detail  = $Reason
+    }
+}
+
 function Invoke-Check {
     param(
         [Parameter(Mandatory = $true)]
@@ -19,6 +31,13 @@ function Invoke-Check {
 
     try {
         $detail = & $ScriptBlock
+
+        if ($detail -is [pscustomobject] -and
+            $detail.PSObject.Properties.Name -contains "Skipped" -and
+            $detail.Skipped) {
+            Write-Log "$Name skipped: $($detail.Detail)" "WARN"
+            return
+        }
 
         if (-not [string]::IsNullOrWhiteSpace([string]$detail)) {
             Write-Log $detail "OK"
@@ -38,6 +57,7 @@ $config = $null
 $models = $null
 $ollamaPath = $null
 $dockerPath = $null
+$dockerDaemonReady = $false
 
 Invoke-Check -Name "Load homelab config" -ScriptBlock {
     $script:config = Get-HomelabConfig
@@ -59,7 +79,17 @@ Invoke-Check -Name "Validate Docker CLI" -ScriptBlock {
     Get-CommandVersion -CommandPath $script:dockerPath
 }
 
+Invoke-Check -Name "Validate Docker daemon" -ScriptBlock {
+    Assert-DockerDaemonReady
+    $script:dockerDaemonReady = $true
+    "Docker daemon is responding."
+}
+
 Invoke-Check -Name "Validate Docker Compose config" -ScriptBlock {
+    if (-not $script:dockerDaemonReady) {
+        return New-SkippedCheckResult -Reason "Docker daemon is not running."
+    }
+
     Test-ComposeConfiguration -Config $script:config
     "Compose config rendered successfully."
 }
@@ -79,7 +109,15 @@ Invoke-Check -Name "Validate installed models" -ScriptBlock {
 }
 
 Invoke-Check -Name "Validate Open WebUI container" -ScriptBlock {
+    if (-not $script:dockerDaemonReady) {
+        return New-SkippedCheckResult -Reason "Docker daemon is not running."
+    }
+
     $health = Get-OpenWebUiHealth -Config $script:config
+
+    if ($health -eq "daemon-unavailable") {
+        throw "Docker daemon is not running. Start Docker Desktop (or the Docker engine) first."
+    }
 
     if ($health -eq "missing") {
         throw "Open WebUI container is not present. Run .\\scripts\\start.ps1 first."
@@ -97,6 +135,10 @@ Invoke-Check -Name "Validate Open WebUI container" -ScriptBlock {
 }
 
 Invoke-Check -Name "Validate Open WebUI HTTP endpoint" -ScriptBlock {
+    if (-not $script:dockerDaemonReady) {
+        return New-SkippedCheckResult -Reason "Docker daemon is not running."
+    }
+
     $url = "http://127.0.0.1:$($script:config.openwebui_port)"
     $response = Test-HttpEndpoint -Url $url -TimeoutSeconds 15
 

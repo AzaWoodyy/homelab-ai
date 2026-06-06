@@ -15,7 +15,7 @@ Test-ComposeConfiguration -Config $config
 Write-Log "Docker Compose configuration is valid." "OK"
 
 Write-Log "Starting Open WebUI..." "STEP"
-[void](Invoke-DockerCompose -Config $config -Arguments @("up", "-d"))
+[void](Invoke-DockerCompose -Config $config -Arguments @("up", "-d") -RequireDaemon)
 
 Write-Log "Waiting for Open WebUI..." "STEP"
 Wait-ForOpenWebUi -Config $config

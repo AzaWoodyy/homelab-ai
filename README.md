@@ -2,7 +2,7 @@
 
 Homelab AI is a personal self-hosted AI workspace for coding, research, and small automation workflows.
 
-The current V2 stack is intentionally simple:
+The current stack is intentionally simple:
 
 - Ollama runs local models on the Windows host.
 - Open WebUI runs in Docker and connects to Ollama.
@@ -125,5 +125,4 @@ Every script run writes a timestamped log file to `logs/`. Those logs are local 
 ## Docs
 
 - [Changelog](./CHANGELOG.md)
-- [Architecture V2](./docs/architecture.md)
 - [Repository Map](./docs/repository-map.md)

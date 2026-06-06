@@ -25,7 +25,7 @@ All notable changes to this project will be documented in this file.
 - `scripts/stop.ps1` now stops the existing Open WebUI container instead of removing it.
 - `docker/compose.yml` now reads the Open WebUI port and Ollama base URL from environment variables set by the scripts.
 - `docker/compose.yml` now requires a persistent `WEBUI_SECRET_KEY` and uses a pinned Open WebUI image tag.
-- `config/models.json` now includes additional model presets for DeepSeek, Llama, and Qwen coder workloads.
+- `config/models.json` now includes additional model presets for DeepSeek and Qwen coder workloads.
 - `config/homelab.json` now pins the Open WebUI release tag in repo config.
 - `README.md` and `docs/architecture.md` now describe the V2 workflow, operational scripts, persistence model, and design boundaries in more detail.
 

@@ -6,7 +6,7 @@ $config = Get-HomelabConfig
 
 Write-Log "Stopping Open WebUI..." "STEP"
 try {
-    [void](Invoke-DockerCompose -Config $config -Arguments @("stop"))
+    [void](Invoke-DockerCompose -Config $config -Arguments @("stop") -RequireDaemon)
     Write-Log "Open WebUI stopped." "OK"
 }
 catch {
