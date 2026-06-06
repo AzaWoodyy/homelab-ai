@@ -20,7 +20,7 @@ This document gives the short version of what each file is for, so a new person 
 
 `config/homelab.json`
 - Main runtime settings for the local stack.
-- Defines the hostname, the Open WebUI port, and the pinned Open WebUI image tag.
+- Defines the hostname, the Open WebUI port, the pinned Open WebUI image tag, the preferred voice/camera models, local TTS defaults, and local Whisper STT defaults.
 
 `config/homelab.local.example.json`
 - Example local-only override file for secrets.
@@ -33,8 +33,13 @@ This document gives the short version of what each file is for, so a new person 
 ## docker/
 
 `docker/compose.yml`
-- Docker Compose definition for Open WebUI.
-- Maps the host loopback port, sets the Ollama connection URL, and defines the health check.
+- Docker Compose definition for Open WebUI and the local TTS service.
+- Maps the host loopback ports, sets the Ollama and TTS connection URLs, and defines the container health checks.
+
+`docker/openedai-speech/voice_to_speaker.yaml`
+- Repo-managed Piper voice mapping for the local TTS service.
+- Keeps the default French and English voices reproducible.
+- Also maps OpenAI-style voice aliases such as `alloy` back to local Piper voices for the Open WebUI speaker UI.
 
 ## docs/
 
@@ -50,26 +55,27 @@ This document gives the short version of what each file is for, so a new person 
 
 `scripts/lib/*.ps1`
 - Focused PowerShell helper files grouped by responsibility.
-- Covers logging, native command execution, config loading, dependency discovery, model validation, Ollama control, Docker Compose calls, HTTP health checks, and Tailscale HTTPS automation.
+- Covers logging, native command execution, config loading, dependency discovery, model validation, Ollama control, Docker Compose calls, Open WebUI config synchronization and runtime patching, HTTP health checks, TTS validation, and Tailscale HTTPS automation.
 
 `scripts/setup.ps1`
 - Validates the local prerequisites.
 - Ensures configured models exist locally.
+- Pulls and warms the local TTS service and its configured Piper voices.
 - Supports `-RefreshModels` to force model refreshes.
 
 `scripts/start.ps1`
 - Starts Ollama.
-- Starts Open WebUI.
-- Waits until the UI is actually reachable before returning.
+- Starts Open WebUI and local TTS.
+- Waits until both services are actually reachable before returning.
 
 `scripts/stop.ps1`
-- Stops Open WebUI.
+- Stops Open WebUI and local TTS.
 - Keeps the existing container definition so the next start can reuse it.
 - Stops Ollama afterward to free resources.
 
 `scripts/test.ps1`
 - End-to-end validation script.
-- Checks config, Docker, Ollama, installed models, container health, and HTTP reachability.
+- Checks config, Docker, Ollama, installed models, container health, direct TTS synthesis, Open WebUI TTS proxy synthesis, and HTTP reachability.
 
 `scripts/status.ps1`
 - Short operational summary for the current machine state.

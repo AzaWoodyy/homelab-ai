@@ -1,0 +1,25 @@
+tts-1:
+  fr_FR-siwis-medium:
+    model: fr_FR-siwis-medium
+    speaker:
+  alloy:
+    model: fr_FR-siwis-medium
+    speaker:
+  nova:
+    model: fr_FR-siwis-medium
+    speaker:
+  shimmer:
+    model: fr_FR-siwis-medium
+    speaker:
+  en_US-lessac-medium:
+    model: en_US-lessac-medium
+    speaker:
+  echo:
+    model: en_US-lessac-medium
+    speaker:
+  fable:
+    model: en_US-lessac-medium
+    speaker:
+  onyx:
+    model: en_US-lessac-medium
+    speaker:
