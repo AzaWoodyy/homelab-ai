@@ -4,6 +4,7 @@ Initialize-HomelabScript -ScriptName "start"
 
 $config = Get-HomelabConfig
 $ollamaPath = Get-OllamaPath
+$tailscaleNodeInfo = Assert-TailscaleServePrerequisites
 
 Write-Log "Starting Ollama..." "STEP"
 Start-Ollama -Config $config -OllamaPath $ollamaPath
@@ -21,7 +22,10 @@ Write-Log "Waiting for Open WebUI..." "STEP"
 Wait-ForOpenWebUi -Config $config
 
 $localUrl = "http://localhost:$($config.openwebui_port)"
-$tailscaleUrl = "http://$($config.hostname):$($config.openwebui_port)"
+$tailscaleUrl = $tailscaleNodeInfo.HttpsUrl
 
-Write-Log "Open WebUI is ready at $localUrl" "OK"
-Write-Log "Tailscale URL: $tailscaleUrl" "INFO"
+Write-Log "Configuring Tailscale HTTPS..." "STEP"
+$tailscaleNodeInfo = Enable-TailscaleOpenWebUiHttps -Config $config
+
+Write-Log "Open WebUI remote URL: $($tailscaleNodeInfo.HttpsUrl)" "OK"
+Write-Log "Open WebUI local URL: $localUrl" "INFO"

@@ -18,9 +18,20 @@ else {
 $localUrl = "http://127.0.0.1:$($config.openwebui_port)"
 $httpStatus = Test-HttpEndpoint -Url $localUrl -TimeoutSeconds 5
 $installedModels = @()
+$tailscaleNodeInfo = $null
+$tailscaleServeState = $null
+$tailscaleError = $null
 
 if ($ollamaState -eq "ready") {
     $installedModels = Get-InstalledOllamaModels -OllamaPath $ollamaPath
+}
+
+try {
+    $tailscaleNodeInfo = Get-TailscaleNodeInfo
+    $tailscaleServeState = Get-TailscaleServeState -Config $config
+}
+catch {
+    $tailscaleError = $_.Exception.Message
 }
 
 Write-Log "Hostname: $($config.hostname)" "INFO"
@@ -34,6 +45,32 @@ if ($httpStatus.Ok) {
 }
 else {
     Write-Log "Open WebUI URL: $localUrl (unreachable)" "WARN"
+}
+
+if ($tailscaleNodeInfo) {
+    Write-Log "Tailscale HTTPS URL: $($tailscaleNodeInfo.HttpsUrl)" "INFO"
+
+    if (-not $tailscaleNodeInfo.MagicDnsEnabled) {
+        Write-Log "Tailscale MagicDNS is not enabled for this tailnet." "WARN"
+    }
+    elseif (-not $tailscaleNodeInfo.HttpsCertificatesEnabled) {
+        Write-Log "Tailscale HTTPS certificates are not enabled for this tailnet." "WARN"
+    }
+    elseif ($tailscaleServeState -and $tailscaleServeState.IsConfiguredExpected) {
+        Write-Log "Tailscale Serve: configured for $($tailscaleServeState.ExpectedProxyTarget)" "OK"
+    }
+    elseif ($tailscaleServeState -and $tailscaleServeState.HasAnyConfiguration) {
+        Write-Log "Tailscale Serve: configured, but not for this repo target" "WARN"
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($tailscaleError)) {
+        Write-Log "Tailscale Serve status unavailable: $tailscaleError" "WARN"
+    }
+    else {
+        Write-Log "Tailscale Serve: not configured for Open WebUI" "WARN"
+    }
+}
+else {
+    Write-Log "Tailscale status unavailable: $tailscaleError" "WARN"
 }
 
 if ($installedModels.Count -gt 0) {

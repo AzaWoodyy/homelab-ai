@@ -6,7 +6,7 @@ The current stack is intentionally simple:
 
 - Ollama runs local models on the Windows host.
 - Open WebUI runs in Docker and connects to Ollama.
-- Tailscale is the private remote access layer.
+- Tailscale is the private remote access and HTTPS layer.
 - PowerShell scripts keep setup, start, stop, and validation reproducible.
 
 ## What This Repo Tries To Do
@@ -26,9 +26,23 @@ The main path is:
 A few practical notes:
 
 - Ollama runs on the host, not in Docker.
-- Open WebUI runs in Docker on port `3000` by default.
+- Open WebUI runs in Docker on port `3000` by default, but that port is only bound to `127.0.0.1`.
 - Docker data is stored in a named volume, so Open WebUI users and chats persist across normal stop/start cycles.
-- `http://homelab-ai:3000` works from another device only when Tailscale name resolution is set up on the tailnet.
+- Remote access is intended to use the Tailscale HTTPS URL for this machine, such as `https://<machine>.<tailnet>.ts.net`.
+
+## Tailscale HTTPS Prerequisites
+
+Remote microphone and speaker-related browser APIs usually require a secure context, which means plain `http://...:3000` is not enough on other devices.
+
+Before using the remote URL, make sure:
+
+- Tailscale is installed on this PC and on each client device.
+- Every client device is signed in to the same tailnet.
+- MagicDNS is enabled for the tailnet.
+- HTTPS certificates are enabled in the Tailscale admin console DNS settings.
+- You run the repo PowerShell scripts from an elevated PowerShell session on Windows, because Tailscale local API access may require Administrator privileges.
+
+When Tailscale HTTPS certificates are enabled, the machine name and tailnet DNS name become visible in certificate transparency logs. That is expected behavior for public CA-issued certificates.
 
 ## Quick Start
 
@@ -69,14 +83,16 @@ Stop the stack:
 `.\scripts\start.ps1`
 - Starts Ollama.
 - Starts Open WebUI with Docker Compose.
-- Waits until the UI is reachable.
+- Waits until the UI is reachable locally.
+- Configures Tailscale Serve so the remote URL is HTTPS on the tailnet.
 
 `.\scripts\stop.ps1`
+- Removes the repo-managed Tailscale HTTPS mapping.
 - Stops Open WebUI.
 - Stops Ollama.
 
 `.\scripts\test.ps1`
-- Verifies config, models, Docker Compose, Open WebUI health, and HTTP reachability.
+- Verifies config, models, Docker Compose, Open WebUI health, local HTTP reachability, Tailscale Serve config, and remote HTTPS reachability.
 
 `.\scripts\status.ps1`
 - Shows the current stack state in a quick human-readable form.
@@ -95,6 +111,8 @@ Main runtime config lives in `config\homelab.json`:
   "openwebui_image_tag": "v0.9.5"
 }
 ```
+
+`hostname` can still be kept for compatibility, but the secure remote URL is discovered from Tailscale at runtime and should be treated as the source of truth for browser access.
 
 Local-only secret overrides live in `config\homelab.local.json`:
 

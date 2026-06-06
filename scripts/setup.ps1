@@ -17,6 +17,14 @@ Write-Log "Checking Docker..." "STEP"
 $dockerPath = Get-DockerPath
 Write-Log (Get-CommandVersion -CommandPath $dockerPath) "OK"
 
+Write-Log "Checking Tailscale..." "STEP"
+$tailscalePath = Get-TailscalePath
+Write-Log (Get-CommandVersion -CommandPath $tailscalePath) "OK"
+
+Write-Log "Validating Tailscale HTTPS prerequisites..." "STEP"
+$tailscaleNodeInfo = Assert-TailscaleServePrerequisites
+Write-Log "Tailscale HTTPS URL: $($tailscaleNodeInfo.HttpsUrl)" "OK"
+
 Write-Log "Validating Docker Compose configuration..." "STEP"
 Test-ComposeConfiguration -Config $config
 Write-Log "Docker Compose configuration is valid." "OK"

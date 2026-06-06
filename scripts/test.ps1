@@ -58,6 +58,7 @@ $models = $null
 $ollamaPath = $null
 $dockerPath = $null
 $dockerDaemonReady = $false
+$tailscaleNodeInfo = $null
 
 Invoke-Check -Name "Load homelab config" -ScriptBlock {
     $script:config = Get-HomelabConfig
@@ -77,6 +78,16 @@ Invoke-Check -Name "Validate Ollama CLI" -ScriptBlock {
 Invoke-Check -Name "Validate Docker CLI" -ScriptBlock {
     $script:dockerPath = Get-DockerPath
     Get-CommandVersion -CommandPath $script:dockerPath
+}
+
+Invoke-Check -Name "Validate Tailscale CLI" -ScriptBlock {
+    $tailscalePath = Get-TailscalePath
+    Get-CommandVersion -CommandPath $tailscalePath
+}
+
+Invoke-Check -Name "Validate Tailscale HTTPS prerequisites" -ScriptBlock {
+    $script:tailscaleNodeInfo = Assert-TailscaleServePrerequisites
+    "Tailscale HTTPS URL: $($script:tailscaleNodeInfo.HttpsUrl)"
 }
 
 Invoke-Check -Name "Validate Docker daemon" -ScriptBlock {
@@ -144,6 +155,35 @@ Invoke-Check -Name "Validate Open WebUI HTTP endpoint" -ScriptBlock {
 
     if (-not $response.Ok) {
         throw "Open WebUI did not return a healthy HTTP response at $url."
+    }
+
+    "Open WebUI is reachable at $url (HTTP $($response.StatusCode))."
+}
+
+Invoke-Check -Name "Validate Tailscale Serve config" -ScriptBlock {
+    if ($null -eq $script:tailscaleNodeInfo) {
+        return New-SkippedCheckResult -Reason "Tailscale HTTPS prerequisites are not satisfied."
+    }
+
+    $serveState = Get-TailscaleServeState -Config $script:config
+
+    if (-not $serveState.IsConfiguredExpected) {
+        throw "Tailscale Serve is not configured for $($serveState.ExpectedProxyTarget)."
+    }
+
+    "Tailscale Serve is configured for $($script:tailscaleNodeInfo.HttpsUrl)."
+}
+
+Invoke-Check -Name "Validate Tailscale HTTPS endpoint" -ScriptBlock {
+    if ($null -eq $script:tailscaleNodeInfo) {
+        return New-SkippedCheckResult -Reason "Tailscale HTTPS prerequisites are not satisfied."
+    }
+
+    $url = $script:tailscaleNodeInfo.HttpsUrl
+    $response = Test-HttpEndpoint -Url $url -TimeoutSeconds 15
+
+    if (-not $response.Ok) {
+        throw "Open WebUI did not return a healthy HTTPS response at $url."
     }
 
     "Open WebUI is reachable at $url (HTTP $($response.StatusCode))."

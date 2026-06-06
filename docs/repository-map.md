@@ -34,7 +34,7 @@ This document gives the short version of what each file is for, so a new person 
 
 `docker/compose.yml`
 - Docker Compose definition for Open WebUI.
-- Maps the host port, sets the Ollama connection URL, and defines the health check.
+- Maps the host loopback port, sets the Ollama connection URL, and defines the health check.
 
 ## docs/
 
@@ -50,7 +50,7 @@ This document gives the short version of what each file is for, so a new person 
 
 `scripts/lib/*.ps1`
 - Focused PowerShell helper files grouped by responsibility.
-- Covers logging, native command execution, config loading, dependency discovery, model validation, Ollama control, Docker Compose calls, and HTTP health checks.
+- Covers logging, native command execution, config loading, dependency discovery, model validation, Ollama control, Docker Compose calls, HTTP health checks, and Tailscale HTTPS automation.
 
 `scripts/setup.ps1`
 - Validates the local prerequisites.
