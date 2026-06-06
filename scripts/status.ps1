@@ -15,8 +15,36 @@ $openWebUiHealth = if ($dockerDaemonState -eq "ready") {
 else {
     "daemon-unavailable"
 }
+$openWebUiRuntimePatchState = if ($dockerDaemonState -eq "ready" -and $openWebUiHealth -in @("healthy", "running")) {
+    Get-OpenWebUiRuntimePatchState -Config $config
+}
+else {
+    "unknown"
+}
+$openWebUiWhisperCacheState = if ($dockerDaemonState -eq "ready" -and $openWebUiHealth -in @("healthy", "running")) {
+    Get-OpenWebUiWhisperCacheState -Config $config
+}
+else {
+    $null
+}
+$ttsHealth = if ($config.tts_enabled -and $dockerDaemonState -eq "ready") {
+    Get-TtsHealth -Config $config
+}
+elseif ($config.tts_enabled) {
+    "daemon-unavailable"
+}
+else {
+    "disabled"
+}
 $localUrl = "http://127.0.0.1:$($config.openwebui_port)"
+$ttsUrl = "http://127.0.0.1:$($config.tts_port)"
 $httpStatus = Test-HttpEndpoint -Url $localUrl -TimeoutSeconds 5
+$ttsStatus = if ($config.tts_enabled) {
+    Test-HttpEndpoint -Url "$ttsUrl/docs" -TimeoutSeconds 5
+}
+else {
+    $null
+}
 $installedModels = @()
 $tailscaleNodeInfo = $null
 $tailscaleServeState = $null
@@ -39,6 +67,26 @@ Write-Log "Open WebUI port: $($config.openwebui_port)" "INFO"
 Write-Log "Ollama: $ollamaState" "INFO"
 Write-Log "Docker daemon: $dockerDaemonState" "INFO"
 Write-Log "Open WebUI container: $openWebUiHealth" "INFO"
+Write-Log "Open WebUI voice-camera patch: $openWebUiRuntimePatchState" "INFO"
+Write-Log "Open WebUI STT model: $($config.stt_model)" "INFO"
+if ($null -ne $openWebUiWhisperCacheState) {
+    $whisperCacheLabel = if ($openWebUiWhisperCacheState.cached) { "ready" } else { "missing" }
+    Write-Log "Open WebUI STT cache: $whisperCacheLabel" "INFO"
+}
+if ($config.tts_enabled) {
+    Write-Log "Local TTS container: $ttsHealth" "INFO"
+}
+
+if ($openWebUiHealth -eq "stopped") {
+    Write-Log "Open WebUI is stopped; voice, camera, and speaker buttons cannot work until .\scripts\start.ps1 runs." "WARN"
+}
+elseif ($null -ne $openWebUiWhisperCacheState -and -not $openWebUiWhisperCacheState.cached) {
+    Write-Log "Local Whisper cache is missing; microphone transcription will fail offline until .\scripts\setup.ps1 is run once with internet access." "WARN"
+}
+
+if ($ttsHealth -eq "stopped") {
+    Write-Log "Local TTS is stopped; Open WebUI cannot synthesize speech until .\scripts\start.ps1 runs." "WARN"
+}
 
 if ($httpStatus.Ok) {
     Write-Log "Open WebUI URL: $localUrl (HTTP $($httpStatus.StatusCode))" "OK"
@@ -46,6 +94,20 @@ if ($httpStatus.Ok) {
 else {
     Write-Log "Open WebUI URL: $localUrl (unreachable)" "WARN"
 }
+
+if ($config.tts_enabled) {
+    if ($ttsStatus.Ok) {
+        Write-Log "Local TTS URL: $ttsUrl (HTTP $($ttsStatus.StatusCode))" "OK"
+    }
+    else {
+        Write-Log "Local TTS URL: $ttsUrl (unreachable)" "WARN"
+    }
+
+    Write-Log "Local TTS voices: default=$($config.tts_default_voice), fallback=$($config.tts_fallback_voice)" "INFO"
+}
+
+Write-Log "Recommended voice/camera model: $($config.voice_vision_model)" "INFO"
+Write-Log "Voice/camera fallback model: $($config.voice_vision_fallback_model)" "INFO"
 
 if ($tailscaleNodeInfo) {
     Write-Log "Tailscale HTTPS URL: $($tailscaleNodeInfo.HttpsUrl)" "INFO"

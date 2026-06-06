@@ -23,8 +23,42 @@ function Set-ComposeEnvironment {
 
     $env:OPENWEBUI_PORT = [string]$Config.openwebui_port
     $env:OPENWEBUI_IMAGE_TAG = [string]$Config.openwebui_image_tag
+    $env:OPENEDAI_SPEECH_PORT = [string]$Config.tts_port
     $env:OLLAMA_BASE_URL = "http://$($Config.ollama_host):$($Config.ollama_port)"
+    $env:AUDIO_TTS_ENGINE = if ($Config.tts_enabled) { "openai" } else { "" }
+    $env:AUDIO_TTS_OPENAI_API_BASE_URL = "http://$($Config.tts_container_name):8000/v1"
+    $env:AUDIO_TTS_OPENAI_API_KEY = "local-tts"
+    $env:AUDIO_TTS_MODEL = [string]$Config.tts_model
+    $env:AUDIO_TTS_VOICE = [string]$Config.tts_default_voice
+    $env:WHISPER_MODEL = [string]$Config.stt_model
+    $env:WHISPER_LANGUAGE = [string]$Config.stt_language
+    $env:WHISPER_MODEL_AUTO_UPDATE = if ($Config.stt_auto_update) { "true" } else { "false" }
     $env:WEBUI_SECRET_KEY = [string]$Config.webui_secret_key
+}
+
+function Get-ComposeRenderedConfig {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    $composePath = Get-ComposePath
+
+    Set-ComposeEnvironment -Config $Config
+
+    $result = Invoke-NativeCommand -FilePath "docker" -Arguments @(
+        "compose",
+        "-f",
+        $composePath,
+        "config"
+    )
+
+    if ($result.ExitCode -ne 0) {
+        $message = ($result.StdErr + [Environment]::NewLine + $result.StdOut).Trim()
+        throw $message
+    }
+
+    return $result.StdOut
 }
 
 function Invoke-DockerCompose {
@@ -59,13 +93,13 @@ function Test-ComposeConfiguration {
         [pscustomobject]$Config
     )
 
-    [void](Invoke-DockerCompose -Config $Config -Arguments @("config"))
+    [void](Get-ComposeRenderedConfig -Config $Config)
 }
 
-function Get-OpenWebUiHealth {
+function Get-ContainerHealthState {
     param(
         [Parameter(Mandatory = $true)]
-        [pscustomobject]$Config
+        [string]$ContainerName
     )
 
     $null = Get-DockerPath
@@ -78,7 +112,7 @@ function Get-OpenWebUiHealth {
         "inspect",
         "--format",
         "{{if .State.Running}}{{if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}{{else}}stopped{{end}}",
-        $Config.openwebui_container_name
+        $ContainerName
     )
 
     if ($result.ExitCode -ne 0) {
@@ -88,10 +122,10 @@ function Get-OpenWebUiHealth {
     return (($result.StdOut -split "\r?\n") | Select-Object -First 1).Trim()
 }
 
-function Get-OpenWebUiStateSummary {
+function Get-ContainerStateSummary {
     param(
         [Parameter(Mandatory = $true)]
-        [pscustomobject]$Config
+        [string]$ContainerName
     )
 
     $null = Get-DockerPath
@@ -104,7 +138,7 @@ function Get-OpenWebUiStateSummary {
         "inspect",
         "--format",
         "{{if .State}}{{.State.Status}}{{if .State.Restarting}} (restarting){{end}}{{if .State.Health}} health={{.State.Health.Status}}{{end}}{{if .State.ExitCode}} exit={{.State.ExitCode}}{{end}}{{end}}",
-        $Config.openwebui_container_name
+        $ContainerName
     )
 
     if ($result.ExitCode -ne 0) {
@@ -114,10 +148,10 @@ function Get-OpenWebUiStateSummary {
     return (($result.StdOut -split "\r?\n") | Select-Object -First 1).Trim()
 }
 
-function Get-OpenWebUiRecentLogs {
+function Get-ContainerRecentLogs {
     param(
         [Parameter(Mandatory = $true)]
-        [pscustomobject]$Config,
+        [string]$ContainerName,
 
         [int]$Tail = 40
     )
@@ -132,7 +166,7 @@ function Get-OpenWebUiRecentLogs {
         "logs",
         "--tail",
         $Tail,
-        $Config.openwebui_container_name
+        $ContainerName
     )
 
     $combinedOutput = @()
@@ -152,4 +186,62 @@ function Get-OpenWebUiRecentLogs {
     return $combinedOutput |
         ForEach-Object { $_.ToString().TrimEnd() } |
         Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+}
+
+function Get-OpenWebUiHealth {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    return Get-ContainerHealthState -ContainerName $Config.openwebui_container_name
+}
+
+function Get-OpenWebUiStateSummary {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    return Get-ContainerStateSummary -ContainerName $Config.openwebui_container_name
+}
+
+function Get-OpenWebUiRecentLogs {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config,
+
+        [int]$Tail = 40
+    )
+
+    return Get-ContainerRecentLogs -ContainerName $Config.openwebui_container_name -Tail $Tail
+}
+
+function Get-TtsHealth {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    return Get-ContainerHealthState -ContainerName $Config.tts_container_name
+}
+
+function Get-TtsStateSummary {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    return Get-ContainerStateSummary -ContainerName $Config.tts_container_name
+}
+
+function Get-TtsRecentLogs {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config,
+
+        [int]$Tail = 40
+    )
+
+    return Get-ContainerRecentLogs -ContainerName $Config.tts_container_name -Tail $Tail
 }

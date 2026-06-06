@@ -16,10 +16,10 @@ catch {
 Write-Log "Stopping Open WebUI..." "STEP"
 try {
     [void](Invoke-DockerCompose -Config $config -Arguments @("stop") -RequireDaemon)
-    Write-Log "Open WebUI stopped." "OK"
+    Write-Log "Open WebUI and local TTS services stopped." "OK"
 }
 catch {
-    Write-Log "Open WebUI stop skipped: $($_.Exception.Message)" "WARN"
+    Write-Log "Open WebUI and local TTS stop skipped: $($_.Exception.Message)" "WARN"
 }
 
 Write-Log "Stopping Ollama..." "STEP"
