@@ -1,21 +1,29 @@
 services:
   open-webui:
-    image: ghcr.io/open-webui/open-webui:main
+    image: ghcr.io/open-webui/open-webui:${OPENWEBUI_IMAGE_TAG:-v0.9.5}
 
     container_name: open-webui
 
     ports:
-      - "3000:8080"
+      - "${OPENWEBUI_PORT:-3000}:8080"
 
     environment:
       OFFLINE_MODE: "true"
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11434}"
+      WEBUI_SECRET_KEY: "${WEBUI_SECRET_KEY:?WEBUI_SECRET_KEY must be set}"
       RAG_EMBEDDING_MODEL_AUTO_UPDATE: "false"
       RAG_RERANKING_MODEL_AUTO_UPDATE: "false"
       WHISPER_MODEL_AUTO_UPDATE: "false"
 
     volumes:
       - open-webui:/app/backend/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl --silent --fail http://localhost:8080/ > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
 
     restart: unless-stopped
 

@@ -1,23 +1,19 @@
-$ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "common.ps1")
 
-$root = Split-Path $PSScriptRoot -Parent
-$composePath = Join-Path $root "docker\compose.yml"
+Initialize-HomelabScript -ScriptName "stop"
 
-Write-Host "Stopping Open WebUI..."
+$config = Get-HomelabConfig
 
-docker compose -f $composePath down
-
-Write-Host "Stopping Ollama..."
-
-$ollamaService = Get-Service -Name "Ollama" -ErrorAction SilentlyContinue
-
-if ($ollamaService) {
-    if ($ollamaService.Status -ne "Stopped") {
-        Stop-Service -Name "Ollama"
-    }
+Write-Log "Stopping Open WebUI..." "STEP"
+try {
+    [void](Invoke-DockerCompose -Config $config -Arguments @("stop") -RequireDaemon)
+    Write-Log "Open WebUI stopped." "OK"
 }
-else {
-    Stop-Process -Name "ollama" -Force -ErrorAction SilentlyContinue
+catch {
+    Write-Log "Open WebUI stop skipped: $($_.Exception.Message)" "WARN"
 }
 
-Write-Host "Done."
+Write-Log "Stopping Ollama..." "STEP"
+Stop-Ollama -Config $config
+
+Write-Log "Stop completed." "OK"
