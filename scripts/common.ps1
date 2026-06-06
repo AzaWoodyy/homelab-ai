@@ -12,7 +12,8 @@ $script:HomelabScriptModules = @(
     "dependencies.ps1",
     "ollama.ps1",
     "docker.ps1",
-    "http.ps1"
+    "http.ps1",
+    "tailscale.ps1"
 )
 
 foreach ($moduleName in $script:HomelabScriptModules) {
