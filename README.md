@@ -115,6 +115,7 @@ Stop the stack:
 - Validates Docker and Ollama.
 - Reads configured models from `config\models.json`.
 - Pulls only missing models.
+- Uses `config\homelab.local.json` `ollama.models_path` when you want Ollama model blobs to live outside the default `C:` profile path.
 - Pulls the local TTS image and warms the configured Piper voices once.
 
 `.\scripts\setup.ps1 -RefreshModels`
@@ -159,6 +160,17 @@ Stop the stack:
 `.\scripts\manager-test.ps1`
 - Verifies the manager landing page, login flow, auth guard, and authenticated summary API.
 
+`.\scripts\sleep.ps1`
+- Stops the homelab stack first.
+- Queues a short delayed Windows sleep transition so the manager job can finish cleanly before the host sleeps.
+
+`.\scripts\shutdown.ps1`
+- Stops the homelab stack first.
+- Queues a short delayed Windows shutdown so the manager job can finish cleanly before the host powers off.
+
+The manager UI exposes the same sleep and shutdown actions.
+Wake stays outside this repo and remains the responsibility of the separate Wake Relay companion app.
+
 ## Config
 
 Main runtime config lives in `config\homelab.json`:
@@ -193,11 +205,16 @@ Local-only secret overrides live in `config\homelab.local.json`:
 ```json
 {
   "webui_secret_key": "replace-with-a-long-random-secret",
-  "management_admin_secret": "replace-with-a-long-random-admin-secret"
+  "management_admin_secret": "replace-with-a-long-random-admin-secret",
+  "ollama": {
+    "models_path": "D:\\dev\\ollama"
+  }
 }
 ```
 
 `config\homelab.local.json` is ignored by git. You can copy `config\homelab.local.example.json` as a starting point, or set `WEBUI_SECRET_KEY` and `MANAGEMENT_ADMIN_SECRET` in your shell environment instead.
+
+If `ollama.models_path` is set, the repo scripts export `OLLAMA_MODELS` and intentionally start a repo-managed `ollama serve` process instead of the Windows `Ollama` service. That keeps the manager UI, setup script, and normal CLI runs pointed at the same model store, which is useful when your real models live somewhere like `D:\dev\ollama`.
 
 Model config lives in `config\models.json`:
 

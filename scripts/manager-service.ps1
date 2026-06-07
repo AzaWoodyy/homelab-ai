@@ -236,6 +236,43 @@ $listener.Start()
 Write-HomelabManagerLockInfo -ProcessId $PID -Port $config.management_port
 Write-Log "Homelab manager listening on http://127.0.0.1:$($config.management_port)/" "OK"
 
+$remoteAccessRetryIntervalSeconds = 15
+$remoteAccessNextAttemptAt = Get-Date
+$remoteAccessReady = $false
+$remoteAccessLastError = $null
+
+function Sync-ManagerRemoteAccess {
+    $now = Get-Date
+
+    if ($now -lt $remoteAccessNextAttemptAt) {
+        return
+    }
+
+    $script:remoteAccessNextAttemptAt = $now.AddSeconds($remoteAccessRetryIntervalSeconds)
+
+    try {
+        $nodeInfo = Enable-TailscaleManagementHttps -Config $config
+        $remoteUrl = Get-HomelabManagerRemoteUrl -Config $config -NodeInfo $nodeInfo
+
+        if (-not $remoteAccessReady) {
+            Write-Log "Homelab manager remote URL: $remoteUrl" "OK"
+        }
+
+        $script:remoteAccessReady = $true
+        $script:remoteAccessLastError = $null
+    }
+    catch {
+        $message = $_.Exception.Message
+
+        if ($remoteAccessReady -or $message -ne $remoteAccessLastError) {
+            Write-Log "Homelab manager remote HTTPS is not ready yet: $message" "WARN"
+        }
+
+        $script:remoteAccessReady = $false
+        $script:remoteAccessLastError = $message
+    }
+}
+
 $requestHandler = Get-HomelabManagerRequestHandlerScript
 $runspacePool = [runspacefactory]::CreateRunspacePool(1, 8)
 $runspacePool.Open()
@@ -282,10 +319,13 @@ function Stop-StaleManagerWorkers {
 }
 
 try {
+    Sync-ManagerRemoteAccess
+
     while ($true) {
         if (-not $listener.Pending()) {
             Clear-CompletedManagerWorkers
             Stop-StaleManagerWorkers
+            Sync-ManagerRemoteAccess
             Start-Sleep -Milliseconds 200
             continue
         }

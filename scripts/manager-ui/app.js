@@ -684,12 +684,22 @@
     handleUnauthorized();
   }
 
-  function actionIsDangerous(name) {
-    return name === "manager-stop";
+  function getActionConfirmationMessage(name) {
+    switch (name) {
+      case "sleep":
+        return "This action will stop the homelab stack and put this PC to sleep. Continue?";
+      case "shutdown":
+        return "This action will stop the homelab stack and shut this PC down. Continue?";
+      case "manager-stop":
+        return "This action will take the manager offline. Continue?";
+      default:
+        return "";
+    }
   }
 
   async function runAction(name) {
-    if (actionIsDangerous(name) && !window.confirm("This action will take the manager offline. Continue?")) return;
+    const confirmationMessage = getActionConfirmationMessage(name);
+    if (confirmationMessage && !window.confirm(confirmationMessage)) return;
 
     try {
       await api(`/api/actions/${name}`, { method: "POST", body: "{}" });

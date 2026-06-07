@@ -80,11 +80,25 @@ function Invoke-DockerCompose {
 
     Set-ComposeEnvironment -Config $Config
 
-    & docker compose -f $composePath @Arguments
+    $dockerArguments = @(
+        "compose",
+        "-f",
+        $composePath
+    ) + $Arguments
 
-    if ($LASTEXITCODE -ne 0) {
-        throw "docker compose $($Arguments -join ' ') failed with exit code $LASTEXITCODE."
+    $result = Invoke-NativeCommand -FilePath "docker" -Arguments $dockerArguments
+
+    if ($result.ExitCode -ne 0) {
+        $message = ($result.StdErr + [Environment]::NewLine + $result.StdOut).Trim()
+
+        if ([string]::IsNullOrWhiteSpace($message)) {
+            throw "docker compose $($Arguments -join ' ') failed with exit code $($result.ExitCode)."
+        }
+
+        throw "docker compose $($Arguments -join ' ') failed with exit code $($result.ExitCode): $message"
     }
+
+    return $result.StdOut
 }
 
 function Test-ComposeConfiguration {

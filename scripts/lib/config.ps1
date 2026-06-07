@@ -48,6 +48,7 @@ function Get-HomelabConfig {
 
     $webUiSecretKey = ""
     $managementAdminSecret = ""
+    $ollamaModelsPath = ""
 
     if ($localConfig -and ($localConfig.PSObject.Properties.Name -contains "webui_secret_key") -and $null -ne $localConfig.webui_secret_key) {
         $webUiSecretKey = [string]$localConfig.webui_secret_key
@@ -55,6 +56,18 @@ function Get-HomelabConfig {
 
     if ($localConfig -and ($localConfig.PSObject.Properties.Name -contains "management_admin_secret") -and $null -ne $localConfig.management_admin_secret) {
         $managementAdminSecret = [string]$localConfig.management_admin_secret
+    }
+
+    if (($rawConfig.PSObject.Properties.Name -contains "ollama") -and $null -ne $rawConfig.ollama) {
+        if (($rawConfig.ollama.PSObject.Properties.Name -contains "models_path") -and $null -ne $rawConfig.ollama.models_path) {
+            $ollamaModelsPath = [string]$rawConfig.ollama.models_path
+        }
+    }
+
+    if ($localConfig -and ($localConfig.PSObject.Properties.Name -contains "ollama") -and $null -ne $localConfig.ollama) {
+        if (($localConfig.ollama.PSObject.Properties.Name -contains "models_path") -and $null -ne $localConfig.ollama.models_path) {
+            $ollamaModelsPath = [string]$localConfig.ollama.models_path
+        }
     }
 
     if (-not [string]::IsNullOrWhiteSpace($env:WEBUI_SECRET_KEY)) {
@@ -65,8 +78,17 @@ function Get-HomelabConfig {
         $managementAdminSecret = [string]$env:MANAGEMENT_ADMIN_SECRET
     }
 
+    if (-not [string]::IsNullOrWhiteSpace($env:OLLAMA_MODELS)) {
+        $ollamaModelsPath = [string]$env:OLLAMA_MODELS
+    }
+
     $webUiSecretKey = $webUiSecretKey.Trim()
     $managementAdminSecret = $managementAdminSecret.Trim()
+    $ollamaModelsPath = $ollamaModelsPath.Trim()
+
+    if (-not [string]::IsNullOrWhiteSpace($ollamaModelsPath)) {
+        $ollamaModelsPath = [System.IO.Path]::GetFullPath($ollamaModelsPath)
+    }
 
     $ttsEnabled = $true
     $ttsPort = 8000
@@ -181,6 +203,7 @@ function Get-HomelabConfig {
         ollama_service_name      = "Ollama"
         ollama_host              = "host.docker.internal"
         ollama_port              = 11434
+        ollama_models_path       = $ollamaModelsPath
         webui_secret_key         = $webUiSecretKey
         management_port          = $managementPort
         management_tailscale_https_port = $managementTailscaleHttpsPort
@@ -209,6 +232,20 @@ function Assert-ManagementAdminSecretConfigured {
     if ([string]::IsNullOrWhiteSpace([string]$Config.management_admin_secret)) {
         throw "MANAGEMENT_ADMIN_SECRET is required. Set it in config\homelab.local.json or the MANAGEMENT_ADMIN_SECRET environment variable."
     }
+}
+
+function Set-HomelabProcessEnvironment {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace([string]$Config.ollama_models_path)) {
+        $env:OLLAMA_MODELS = [string]$Config.ollama_models_path
+        return
+    }
+
+    Remove-Item Env:OLLAMA_MODELS -ErrorAction SilentlyContinue
 }
 
 function Get-EditableHomelabConfig {

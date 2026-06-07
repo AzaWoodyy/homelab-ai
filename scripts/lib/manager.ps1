@@ -1,5 +1,12 @@
 function Get-HomelabManagerTaskName {
-    return "Homelab AI Manager"
+    return "\Homelab AI Manager"
+}
+
+function Get-HomelabManagerTaskNameCandidates {
+    return @(
+        (Get-HomelabManagerTaskName),
+        "Homelab AI Manager"
+    )
 }
 
 function Get-ManagerStateRoot {
@@ -326,13 +333,52 @@ function Wait-ForHomelabManager {
 }
 
 function Get-HomelabManagerTaskQuery {
-    $taskName = Get-HomelabManagerTaskName
-    $result = Invoke-NativeCommand -FilePath "schtasks.exe" -Arguments @("/Query", "/TN", $taskName, "/FO", "LIST")
+    foreach ($taskName in @(Get-HomelabManagerTaskNameCandidates)) {
+        $result = Invoke-NativeCommand -FilePath "schtasks.exe" -Arguments @("/Query", "/TN", $taskName, "/FO", "LIST")
+
+        if ($result.ExitCode -eq 0) {
+            return [pscustomobject]@{
+                Exists   = $true
+                Raw      = (($result.StdOut + [Environment]::NewLine + $result.StdErr).Trim())
+                ExitCode = $result.ExitCode
+            }
+        }
+    }
+
+    try {
+        $scheduleService = New-Object -ComObject "Schedule.Service"
+        $scheduleService.Connect()
+        $rootFolder = $scheduleService.GetFolder("\")
+
+        foreach ($taskName in @(Get-HomelabManagerTaskNameCandidates)) {
+            $normalizedTaskName = [string]$taskName
+
+            if (-not $normalizedTaskName.StartsWith("\")) {
+                $normalizedTaskName = "\" + $normalizedTaskName
+            }
+
+            try {
+                $task = $rootFolder.GetTask($normalizedTaskName)
+
+                if ($null -ne $task) {
+                    return [pscustomobject]@{
+                        Exists   = $true
+                        Raw      = "Task Scheduler COM query matched $normalizedTaskName."
+                        ExitCode = 0
+                    }
+                }
+            }
+            catch {
+            }
+        }
+    }
+    catch {
+    }
 
     return [pscustomobject]@{
-        Exists   = ($result.ExitCode -eq 0)
-        Raw      = (($result.StdOut + [Environment]::NewLine + $result.StdErr).Trim())
-        ExitCode = $result.ExitCode
+        Exists   = $false
+        Raw      = "Task query failed for all candidates: $([string]::Join(', ', @(Get-HomelabManagerTaskNameCandidates)))."
+        ExitCode = 1
     }
 }
 
@@ -537,6 +583,8 @@ function Get-HomelabManagerActionDescriptor {
         "setup" { Join-Path $script:HomelabRoot "scripts\setup.ps1" }
         "refresh-models" { Join-Path $script:HomelabRoot "scripts\refresh-models.ps1" }
         "test" { Join-Path $script:HomelabRoot "scripts\test.ps1" }
+        "sleep" { Join-Path $script:HomelabRoot "scripts\sleep.ps1" }
+        "shutdown" { Join-Path $script:HomelabRoot "scripts\shutdown.ps1" }
         default { $null }
     }
 

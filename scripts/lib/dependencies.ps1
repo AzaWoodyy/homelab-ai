@@ -15,12 +15,29 @@ function Get-OllamaPath {
         return $command.Source
     }
 
-    $candidatePaths = @(
-        (Join-Path $env:LOCALAPPDATA "Programs\Ollama\ollama.exe"),
-        (Join-Path $env:ProgramFiles "Ollama\ollama.exe")
-    )
+    $candidatePaths = New-Object System.Collections.Generic.List[string]
 
-    foreach ($candidatePath in $candidatePaths) {
+    if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+        $candidatePaths.Add((Join-Path $env:LOCALAPPDATA "Programs\Ollama\ollama.exe"))
+    }
+
+    foreach ($programFilesPath in @($env:ProgramFiles, $env:ProgramW6432)) {
+        if (-not [string]::IsNullOrWhiteSpace($programFilesPath)) {
+            $candidatePaths.Add((Join-Path $programFilesPath "Ollama\ollama.exe"))
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($env:SystemDrive)) {
+        $usersRoot = Join-Path $env:SystemDrive "Users"
+
+        if (Test-Path -LiteralPath $usersRoot) {
+            foreach ($profileDirectory in (Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue)) {
+                $candidatePaths.Add((Join-Path $profileDirectory.FullName "AppData\Local\Programs\Ollama\ollama.exe"))
+            }
+        }
+    }
+
+    foreach ($candidatePath in ($candidatePaths | Select-Object -Unique)) {
         if (Test-Path -LiteralPath $candidatePath) {
             return $candidatePath
         }

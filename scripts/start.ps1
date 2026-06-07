@@ -4,7 +4,6 @@ Initialize-HomelabScript -ScriptName "start"
 
 $config = Get-HomelabConfig
 $ollamaPath = Get-OllamaPath
-$tailscaleNodeInfo = Assert-TailscaleServePrerequisites
 
 Write-Log "Starting Ollama..." "STEP"
 Start-Ollama -Config $config -OllamaPath $ollamaPath
@@ -42,7 +41,6 @@ Write-Log "Persisted Open WebUI audio settings and runtime voice-camera patch ar
 
 $localUrl = "http://localhost:$($config.openwebui_port)"
 $ttsUrl = "http://127.0.0.1:$($config.tts_port)"
-$tailscaleUrl = $tailscaleNodeInfo.HttpsUrl
 
 Write-Log "Configuring Tailscale HTTPS..." "STEP"
 $tailscaleNodeInfo = Enable-TailscaleOpenWebUiHttps -Config $config

@@ -24,5 +24,5 @@ try {
     Write-Log "Homelab manager remote URL: $(Get-HomelabManagerRemoteUrl -Config $config -NodeInfo $nodeInfo)" "OK"
 }
 catch {
-    Write-Log "Homelab manager Tailscale HTTPS setup skipped: $($_.Exception.Message)" "WARN"
+    Write-Log "Homelab manager Tailscale HTTPS is not ready yet: $($_.Exception.Message) The background manager service will keep retrying." "WARN"
 }

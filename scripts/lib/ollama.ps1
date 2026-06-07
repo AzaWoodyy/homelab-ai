@@ -7,6 +7,15 @@ function Get-OllamaService {
     return Get-Service -Name $Config.ollama_service_name -ErrorAction SilentlyContinue
 }
 
+function Test-HomelabManagedOllamaPathConfigured {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    return (-not [string]::IsNullOrWhiteSpace([string]$Config.ollama_models_path))
+}
+
 function Test-OllamaReady {
     param(
         [Parameter(Mandatory = $true)]
@@ -53,6 +62,23 @@ function Start-Ollama {
     )
 
     $service = Get-OllamaService -Config $Config
+    $useManagedProcess = Test-HomelabManagedOllamaPathConfigured -Config $Config
+
+    if ($useManagedProcess) {
+        if ($service -and $service.Status -eq "Running") {
+            Stop-Service -Name $Config.ollama_service_name
+            Write-Log "Stopped Ollama Windows service so the configured models path can be used." "WARN"
+        }
+
+        if (Test-OllamaReady -OllamaPath $OllamaPath) {
+            Write-Log "Ollama is already running with the configured models path." "OK"
+            return
+        }
+
+        Start-Process -FilePath $OllamaPath -ArgumentList "serve" -WindowStyle Hidden
+        Write-Log "Started Ollama process with models path $($Config.ollama_models_path)." "OK"
+        return
+    }
 
     if ($service) {
         if ($service.Status -eq "Running") {
@@ -81,6 +107,27 @@ function Stop-Ollama {
     )
 
     $service = Get-OllamaService -Config $Config
+    $useManagedProcess = Test-HomelabManagedOllamaPathConfigured -Config $Config
+
+    if ($useManagedProcess) {
+        if ($service -and $service.Status -eq "Running") {
+            Stop-Service -Name $Config.ollama_service_name
+            Write-Log "Ollama Windows service stopped." "OK"
+        }
+
+        $processes = Get-Process -Name "ollama" -ErrorAction SilentlyContinue
+
+        if (-not $processes) {
+            if (-not ($service -and $service.Status -eq "Running")) {
+                Write-Log "No Ollama process found." "OK"
+            }
+            return
+        }
+
+        $processes | Stop-Process -Force
+        Write-Log "Stopped Ollama process." "OK"
+        return
+    }
 
     if ($service) {
         if ($service.Status -eq "Stopped") {

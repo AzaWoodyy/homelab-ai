@@ -4,6 +4,8 @@ function Initialize-HomelabScript {
         [string]$ScriptName
     )
 
+    Set-HomelabProcessEnvironment -Config (Get-HomelabConfig)
+
     $logsPath = Join-Path $script:HomelabRoot "logs"
 
     if (-not (Test-Path -LiteralPath $logsPath)) {
