@@ -57,9 +57,19 @@ Before using the remote URL, make sure:
 
 When Tailscale HTTPS certificates are enabled, the machine name and tailnet DNS name become visible in certificate transparency logs. That is expected behavior for public CA-issued certificates.
 
-## Wake-on-LAN Prerequisites
+## Wake-on-LAN Companion
 
-If you want the gaming PC to wake reliably before you connect to it, complete the BIOS/UEFI, Windows power, NIC, and MAC address setup in [Wake-on-LAN Setup Guide](./docs/wake-on-lan.md). Start with same-LAN testing before trying any remote wake workflow.
+Wake-on-LAN is now treated as a companion workflow rather than part of this repo's supported runtime surface.
+
+If you want the gaming PC to wake reliably before you connect to it:
+
+- Complete the target PC and network prerequisites in [Wake-on-LAN Setup Guide](./docs/wake-on-lan.md).
+- Run the dedicated relay service on a separate always-on LAN node.
+- Use the standalone companion project in [`wake-relay/`](./wake-relay/README.md) as the starting point for that always-on machine repo.
+
+The remote wake path is:
+
+`Phone or laptop -> Tailscale -> Wake Relay -> Magic packet -> Gaming PC`
 
 ## Quick Start
 
@@ -226,3 +236,4 @@ The manager also writes runtime state, pending apply metadata, sessions, and job
 - [Changelog](./CHANGELOG.md)
 - [Repository Map](./docs/repository-map.md)
 - [Wake-on-LAN Setup Guide](./docs/wake-on-lan.md)
+- [Wake Relay Companion Project](./wake-relay/README.md)

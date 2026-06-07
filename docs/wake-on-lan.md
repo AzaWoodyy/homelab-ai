@@ -1,6 +1,8 @@
 # Wake-on-LAN Setup Guide
 
-This guide covers the non-code setup required to make Wake-on-LAN reliable on the Windows gaming PC that hosts this homelab stack.
+This guide covers the target-PC and network setup required to make Wake-on-LAN reliable for the Windows gaming PC that hosts this homelab stack.
+
+This repo no longer acts as the supported runtime home for the relay service itself. Use the companion Wake Relay project in [`wake-relay/`](../wake-relay/README.md) for the always-on machine that will send the magic packet.
 
 The goal is simple:
 
@@ -119,19 +121,24 @@ Ignore addresses shown for Wi-Fi, Bluetooth, Hyper-V, Tailscale, Docker, VPN, or
 
 ## Where To Store The MAC Address
 
-Store the chosen MAC address in local-only `config\homelab.local.json` under `gaming_pc_wol_mac`.
+Store the chosen MAC address in the dedicated Wake Relay project's local-only config on the always-on machine.
 
-Example:
+The companion relay project expects a relay-specific local config file and shared secret, so keep the MAC address there rather than treating this repo as the place that runs the wake endpoint.
 
-```json
-{
-  "webui_secret_key": "replace-with-a-long-random-secret",
-  "management_admin_secret": "replace-with-a-long-random-admin-secret",
-  "gaming_pc_wol_mac": "AA-BB-CC-DD-EE-FF"
-}
-```
+## Remote Wake Over Tailscale
 
-This value is contributor-local metadata for now. Repo scripts do not currently consume it, but storing it there gives the repo one obvious place to look when Wake-on-LAN support is added later.
+Tailscale gives the remote access path, but it does not remove the basic Wake-on-LAN constraint: the magic packet still needs to be sent by a machine that is awake and on the same LAN as the gaming PC.
+
+Use this model:
+
+- Keep one always-on relay node on the home LAN.
+- Install Tailscale on that relay node.
+- Use the dedicated Wake Relay project on that relay node.
+- Set the relay project's `target_mac` and `shared_secret` in that relay node's local config.
+- Start the relay from the companion project.
+- Open the relay's Tailscale HTTPS URL from your phone, MacBook, or laptop and press the wake button.
+
+If the relay host can wake the gaming PC locally, then exposing that relay over Tailscale is the clean remote step.
 
 ## Validation Workflow
 

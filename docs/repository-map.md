@@ -21,7 +21,7 @@ This document gives the short version of what each file is for, so a new person 
 
 `config/homelab.json`
 - Main runtime settings for the local stack.
-- Defines the hostname, the Open WebUI port, the manager port settings, the pinned Open WebUI image tag, the preferred voice/camera models, local TTS defaults, and local Whisper STT defaults.
+- Defines the hostname, the Open WebUI and manager port settings, the pinned Open WebUI image tag, the preferred voice/camera models, local TTS defaults, and local Whisper STT defaults.
 
 `config/homelab.local.example.json`
 - Example local-only override file for secrets.
@@ -50,7 +50,7 @@ This document gives the short version of what each file is for, so a new person 
 
 `docs/wake-on-lan.md`
 - Contributor guide for reliable Wake-on-LAN setup on the Windows gaming PC.
-- Covers firmware prerequisites, Windows and NIC settings, MAC address storage, and validation.
+- Covers firmware prerequisites, Windows and NIC settings, local validation, and the Tailscale relay topology.
 
 ## scripts/
 
@@ -60,7 +60,7 @@ This document gives the short version of what each file is for, so a new person 
 
 `scripts/lib/*.ps1`
 - Focused PowerShell helper files grouped by responsibility.
-- Covers logging, native command execution, config loading, dependency discovery, model validation, Ollama control, Docker Compose calls, Open WebUI config synchronization and runtime patching, HTTP health checks, TTS validation, and Tailscale HTTPS automation.
+- Covers logging, native command execution, config loading, dependency discovery, model validation, Ollama control, Docker Compose calls, Open WebUI config synchronization and runtime patching, HTTP health checks, TTS validation, Tailscale HTTPS automation, and Wake-on-LAN delivery.
 
 `scripts/setup.ps1`
 - Validates the local prerequisites.
@@ -107,6 +107,12 @@ This document gives the short version of what each file is for, so a new person 
 `scripts/manager-ui/*`
 - Static dashboard assets served by the manager service.
 - Contains the login page, control panel, editing forms, and live job UI.
+
+## wake-relay/
+
+`wake-relay/`
+- Standalone companion Wake Relay project scaffolded inside this workspace.
+- Intended to become its own repo for the always-on machine that sends magic packets over the home LAN.
 
 ## logs/
 
