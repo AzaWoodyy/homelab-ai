@@ -1,4 +1,5 @@
 {
   "webui_secret_key": "replace-with-a-long-random-secret",
-  "management_admin_secret": "replace-with-a-long-random-admin-secret"
+  "management_admin_secret": "replace-with-a-long-random-admin-secret",
+  "gaming_pc_wol_mac": "AA-BB-CC-DD-EE-FF"
 }

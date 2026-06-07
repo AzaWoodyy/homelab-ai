@@ -48,6 +48,10 @@ This document gives the short version of what each file is for, so a new person 
 - This file.
 - Useful when you want the "what is each file for" view.
 
+`docs/wake-on-lan.md`
+- Contributor guide for reliable Wake-on-LAN setup on the Windows gaming PC.
+- Covers firmware prerequisites, Windows and NIC settings, MAC address storage, and validation.
+
 ## scripts/
 
 `scripts/common.ps1`

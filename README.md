@@ -57,6 +57,10 @@ Before using the remote URL, make sure:
 
 When Tailscale HTTPS certificates are enabled, the machine name and tailnet DNS name become visible in certificate transparency logs. That is expected behavior for public CA-issued certificates.
 
+## Wake-on-LAN Prerequisites
+
+If you want the gaming PC to wake reliably before you connect to it, complete the BIOS/UEFI, Windows power, NIC, and MAC address setup in [Wake-on-LAN Setup Guide](./docs/wake-on-lan.md). Start with same-LAN testing before trying any remote wake workflow.
+
 ## Quick Start
 
 Initial setup:
@@ -221,3 +225,4 @@ The manager also writes runtime state, pending apply metadata, sessions, and job
 
 - [Changelog](./CHANGELOG.md)
 - [Repository Map](./docs/repository-map.md)
+- [Wake-on-LAN Setup Guide](./docs/wake-on-lan.md)
