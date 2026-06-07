@@ -2,6 +2,10 @@
   "hostname": "homelab-ai",
   "openwebui_port": 3000,
   "openwebui_image_tag": "v0.9.5",
+  "management": {
+    "port": 3081,
+    "tailscale_https_port": 8443
+  },
   "voice_vision_model": "llava:13b",
   "voice_vision_fallback_model": "qwen3.5:9b",
   "tts": {

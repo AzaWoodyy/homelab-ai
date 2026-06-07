@@ -255,17 +255,20 @@ function Get-RecursivePropertyValues {
     return $values.ToArray()
 }
 
-function Test-TailscaleServeObjectHasHttps443 {
+function Test-TailscaleServeObjectHasHttpsPort {
     param(
-        [object]$InputObject
+        [object]$InputObject,
+        [int]$HttpsPort
     )
 
+    $portKey = [string]$HttpsPort
+
     foreach ($tcpNode in (Get-RecursivePropertyValues -InputObject $InputObject -PropertyName "TCP")) {
-        if ($null -eq $tcpNode -or -not (Test-ObjectHasProperty -InputObject $tcpNode -PropertyName "443")) {
+        if ($null -eq $tcpNode -or -not (Test-ObjectHasProperty -InputObject $tcpNode -PropertyName $portKey)) {
             continue
         }
 
-        $portNode = Get-ObjectPropertyValue -InputObject $tcpNode -PropertyName "443"
+        $portNode = Get-ObjectPropertyValue -InputObject $tcpNode -PropertyName $portKey
 
         if ($null -ne $portNode -and
             (Test-ObjectHasProperty -InputObject $portNode -PropertyName "HTTPS") -and
@@ -281,14 +284,17 @@ function Test-TailscaleServeObjectHasExpectedWebProxy {
     param(
         [object]$InputObject,
         [string]$DnsName,
+        [int]$HttpsPort,
         [string]$ExpectedProxyTarget
     )
+
+    $expectedHostKey = "$DnsName`:$HttpsPort"
 
     foreach ($webNode in (Get-RecursivePropertyValues -InputObject $InputObject -PropertyName "Web")) {
         foreach ($hostKey in (Get-ObjectPropertyNames -InputObject $webNode)) {
             $normalizedHostKey = ([string]$hostKey).Trim().TrimEnd(".")
 
-            if ($normalizedHostKey -ne "$DnsName`:443") {
+            if ($normalizedHostKey -ne $expectedHostKey) {
                 continue
             }
 
@@ -357,15 +363,18 @@ function Test-TailscaleServeObjectHasExpectedWebProxyAnyHost {
 function Test-TailscaleServeObjectHasExpectedEndpoint {
     param(
         [object]$InputObject,
+        [int]$HttpsPort,
         [string]$ExpectedProxyTarget
     )
 
+    $endpointKey = "tcp:$HttpsPort"
+
     foreach ($endpointsNode in (Get-RecursivePropertyValues -InputObject $InputObject -PropertyName "endpoints")) {
-        if ($null -eq $endpointsNode -or -not (Test-ObjectHasProperty -InputObject $endpointsNode -PropertyName "tcp:443")) {
+        if ($null -eq $endpointsNode -or -not (Test-ObjectHasProperty -InputObject $endpointsNode -PropertyName $endpointKey)) {
             continue
         }
 
-        if ([string](Get-ObjectPropertyValue -InputObject $endpointsNode -PropertyName "tcp:443") -eq $ExpectedProxyTarget) {
+        if ([string](Get-ObjectPropertyValue -InputObject $endpointsNode -PropertyName $endpointKey) -eq $ExpectedProxyTarget) {
             return $true
         }
     }
@@ -402,57 +411,102 @@ function Test-TailscaleServeObjectHasAnyConfiguration {
     return $true
 }
 
-function Get-TailscaleServeState {
+function Test-TailscaleServeObjectHasAnyConfigurationForPort {
+    param(
+        [object]$InputObject,
+        [int]$HttpsPort
+    )
+
+    $portKey = [string]$HttpsPort
+    $hostSuffix = ":$HttpsPort"
+    $endpointKey = "tcp:$HttpsPort"
+
+    foreach ($tcpNode in (Get-RecursivePropertyValues -InputObject $InputObject -PropertyName "TCP")) {
+        if ($null -ne $tcpNode -and (Test-ObjectHasProperty -InputObject $tcpNode -PropertyName $portKey)) {
+            return $true
+        }
+    }
+
+    foreach ($webNode in (Get-RecursivePropertyValues -InputObject $InputObject -PropertyName "Web")) {
+        foreach ($hostKey in (Get-ObjectPropertyNames -InputObject $webNode)) {
+            if (([string]$hostKey).Trim().TrimEnd(".").EndsWith($hostSuffix)) {
+                return $true
+            }
+        }
+    }
+
+    foreach ($endpointsNode in (Get-RecursivePropertyValues -InputObject $InputObject -PropertyName "endpoints")) {
+        if ($null -ne $endpointsNode -and (Test-ObjectHasProperty -InputObject $endpointsNode -PropertyName $endpointKey)) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Get-TailscaleServeProxyState {
     param(
         [Parameter(Mandatory = $true)]
-        [pscustomobject]$Config
+        [pscustomobject]$Config,
+
+        [Parameter(Mandatory = $true)]
+        [int]$HttpsPort,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedProxyTarget
     )
 
     $nodeInfo = Get-TailscaleNodeInfo
-    $expectedProxyTarget = "http://127.0.0.1:$($Config.openwebui_port)"
     $statusJson = Get-TailscaleServeStatusJson
     $configJson = Get-TailscaleServeConfigJson
 
-    $hasHttps443 = (
-        (Test-TailscaleServeObjectHasHttps443 -InputObject $statusJson) -or
-        (Test-TailscaleServeObjectHasHttps443 -InputObject $configJson)
+    $hasHttpsPort = (
+        (Test-TailscaleServeObjectHasHttpsPort -InputObject $statusJson -HttpsPort $HttpsPort) -or
+        (Test-TailscaleServeObjectHasHttpsPort -InputObject $configJson -HttpsPort $HttpsPort)
     )
     $hasExpectedTarget = (
-        (Test-TailscaleServeObjectHasExpectedWebProxy -InputObject $statusJson -DnsName $nodeInfo.DnsName -ExpectedProxyTarget $expectedProxyTarget) -or
-        (Test-TailscaleServeObjectHasExpectedWebProxy -InputObject $configJson -DnsName $nodeInfo.DnsName -ExpectedProxyTarget $expectedProxyTarget) -or
-        (Test-TailscaleServeObjectHasExpectedEndpoint -InputObject $statusJson -ExpectedProxyTarget $expectedProxyTarget) -or
-        (Test-TailscaleServeObjectHasExpectedEndpoint -InputObject $configJson -ExpectedProxyTarget $expectedProxyTarget)
+        (Test-TailscaleServeObjectHasExpectedWebProxy -InputObject $statusJson -DnsName $nodeInfo.DnsName -HttpsPort $HttpsPort -ExpectedProxyTarget $ExpectedProxyTarget) -or
+        (Test-TailscaleServeObjectHasExpectedWebProxy -InputObject $configJson -DnsName $nodeInfo.DnsName -HttpsPort $HttpsPort -ExpectedProxyTarget $ExpectedProxyTarget) -or
+        (Test-TailscaleServeObjectHasExpectedEndpoint -InputObject $statusJson -HttpsPort $HttpsPort -ExpectedProxyTarget $ExpectedProxyTarget) -or
+        (Test-TailscaleServeObjectHasExpectedEndpoint -InputObject $configJson -HttpsPort $HttpsPort -ExpectedProxyTarget $ExpectedProxyTarget)
     )
     $hasExpectedTargetAnyHost = (
-        (Test-TailscaleServeObjectHasExpectedWebProxyAnyHost -InputObject $statusJson -ExpectedProxyTarget $expectedProxyTarget) -or
-        (Test-TailscaleServeObjectHasExpectedWebProxyAnyHost -InputObject $configJson -ExpectedProxyTarget $expectedProxyTarget) -or
-        (Test-TailscaleServeObjectHasExpectedEndpoint -InputObject $statusJson -ExpectedProxyTarget $expectedProxyTarget) -or
-        (Test-TailscaleServeObjectHasExpectedEndpoint -InputObject $configJson -ExpectedProxyTarget $expectedProxyTarget)
+        (Test-TailscaleServeObjectHasExpectedWebProxyAnyHost -InputObject $statusJson -ExpectedProxyTarget $ExpectedProxyTarget) -or
+        (Test-TailscaleServeObjectHasExpectedWebProxyAnyHost -InputObject $configJson -ExpectedProxyTarget $ExpectedProxyTarget) -or
+        (Test-TailscaleServeObjectHasExpectedEndpoint -InputObject $statusJson -HttpsPort $HttpsPort -ExpectedProxyTarget $ExpectedProxyTarget) -or
+        (Test-TailscaleServeObjectHasExpectedEndpoint -InputObject $configJson -HttpsPort $HttpsPort -ExpectedProxyTarget $ExpectedProxyTarget)
     )
     $hasAnyConfiguration = (
-        (Test-TailscaleServeObjectHasAnyConfiguration -InputObject $statusJson) -or
-        (Test-TailscaleServeObjectHasAnyConfiguration -InputObject $configJson)
+        (Test-TailscaleServeObjectHasAnyConfigurationForPort -InputObject $statusJson -HttpsPort $HttpsPort) -or
+        (Test-TailscaleServeObjectHasAnyConfigurationForPort -InputObject $configJson -HttpsPort $HttpsPort)
     )
 
     return [pscustomobject]@{
         NodeInfo             = $nodeInfo
-        ExpectedProxyTarget  = $expectedProxyTarget
+        HttpsPort            = $HttpsPort
+        ExpectedProxyTarget  = $ExpectedProxyTarget
         HasAnyConfiguration  = $hasAnyConfiguration
         HasExpectedTargetAnyHost = $hasExpectedTargetAnyHost
-        IsConfiguredExpected = ($hasHttps443 -and $hasExpectedTarget)
+        IsConfiguredExpected = ($hasHttpsPort -and $hasExpectedTarget)
         StatusJson           = $statusJson
         ConfigJson           = $configJson
     }
 }
 
-function Enable-TailscaleOpenWebUiHttps {
+function Enable-TailscaleServeProxy {
     param(
         [Parameter(Mandatory = $true)]
-        [pscustomobject]$Config
+        [pscustomobject]$Config,
+
+        [Parameter(Mandatory = $true)]
+        [int]$HttpsPort,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Target
     )
 
     $nodeInfo = Assert-TailscaleServePrerequisites
-    $serveState = Get-TailscaleServeState -Config $Config
+    $serveState = Get-TailscaleServeProxyState -Config $Config -HttpsPort $HttpsPort -ExpectedProxyTarget $Target
 
     if ($serveState.IsConfiguredExpected) {
         return $nodeInfo
@@ -462,16 +516,72 @@ function Enable-TailscaleOpenWebUiHttps {
         throw "Tailscale Serve already has a different configuration on this machine. Clear or adjust the existing Serve config before enabling the repo-managed HTTPS mapping."
     }
 
-    $target = $serveState.ExpectedProxyTarget
-    [void](Invoke-TailscaleCommand -Arguments @("serve", "--bg", "--yes", "--https=443", $target))
+    [void](Invoke-TailscaleCommand -Arguments @("serve", "--bg", "--yes", "--https=$HttpsPort", $Target))
 
-    $updatedServeState = Get-TailscaleServeState -Config $Config
+    $updatedServeState = Get-TailscaleServeProxyState -Config $Config -HttpsPort $HttpsPort -ExpectedProxyTarget $Target
 
     if (-not $updatedServeState.IsConfiguredExpected) {
-        throw "Tailscale HTTPS Serve did not end up with the expected proxy target ($target)."
+        throw "Tailscale HTTPS Serve did not end up with the expected proxy target ($Target) on port $HttpsPort."
     }
 
     return $nodeInfo
+}
+
+function Disable-TailscaleServeProxy {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config,
+
+        [Parameter(Mandatory = $true)]
+        [int]$HttpsPort,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Target
+    )
+
+    $serveState = Get-TailscaleServeProxyState -Config $Config -HttpsPort $HttpsPort -ExpectedProxyTarget $Target
+
+    if (-not $serveState.IsConfiguredExpected) {
+        return
+    }
+
+    [void](Invoke-TailscaleCommand -Arguments @("serve", "--yes", "--https=$HttpsPort", $serveState.ExpectedProxyTarget, "off"))
+}
+
+function Get-TailscaleServeState {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    return Get-TailscaleServeProxyState -Config $Config -HttpsPort 443 -ExpectedProxyTarget "http://127.0.0.1:$($Config.openwebui_port)"
+}
+
+function Get-TailscaleManagementServeState {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    return Get-TailscaleServeProxyState -Config $Config -HttpsPort $Config.management_tailscale_https_port -ExpectedProxyTarget "http://127.0.0.1:$($Config.management_port)"
+}
+
+function Enable-TailscaleOpenWebUiHttps {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    return Enable-TailscaleServeProxy -Config $Config -HttpsPort 443 -Target "http://127.0.0.1:$($Config.openwebui_port)"
+}
+
+function Enable-TailscaleManagementHttps {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    return Enable-TailscaleServeProxy -Config $Config -HttpsPort $Config.management_tailscale_https_port -Target "http://127.0.0.1:$($Config.management_port)"
 }
 
 function Disable-TailscaleOpenWebUiHttps {
@@ -480,11 +590,14 @@ function Disable-TailscaleOpenWebUiHttps {
         [pscustomobject]$Config
     )
 
-    $serveState = Get-TailscaleServeState -Config $Config
+    Disable-TailscaleServeProxy -Config $Config -HttpsPort 443 -Target "http://127.0.0.1:$($Config.openwebui_port)"
+}
 
-    if (-not $serveState.IsConfiguredExpected) {
-        return
-    }
+function Disable-TailscaleManagementHttps {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
 
-    [void](Invoke-TailscaleCommand -Arguments @("serve", "--yes", "--https=443", $serveState.ExpectedProxyTarget, "off"))
+    Disable-TailscaleServeProxy -Config $Config -HttpsPort $Config.management_tailscale_https_port -Target "http://127.0.0.1:$($Config.management_port)"
 }

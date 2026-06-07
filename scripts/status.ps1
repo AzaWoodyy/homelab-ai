@@ -38,7 +38,9 @@ else {
 }
 $localUrl = "http://127.0.0.1:$($config.openwebui_port)"
 $ttsUrl = "http://127.0.0.1:$($config.tts_port)"
+$managerUrl = "http://127.0.0.1:$($config.management_port)"
 $httpStatus = Test-HttpEndpoint -Url $localUrl -TimeoutSeconds 5
+$managerStatus = Test-HttpEndpoint -Url $managerUrl -TimeoutSeconds 5
 $ttsStatus = if ($config.tts_enabled) {
     Test-HttpEndpoint -Url "$ttsUrl/docs" -TimeoutSeconds 5
 }
@@ -48,7 +50,12 @@ else {
 $installedModels = @()
 $tailscaleNodeInfo = $null
 $tailscaleServeState = $null
+$managementServeState = $null
 $tailscaleError = $null
+$managerLockInfo = Get-HomelabManagerLockInfo
+$pendingApply = Get-HomelabManagerPendingApplyState
+$currentManagerJob = Get-HomelabManagerCurrentJob
+$latestManagerJob = Get-HomelabManagerLastJob
 
 if ($ollamaState -eq "ready") {
     $installedModels = Get-InstalledOllamaModels -OllamaPath $ollamaPath
@@ -57,6 +64,7 @@ if ($ollamaState -eq "ready") {
 try {
     $tailscaleNodeInfo = Get-TailscaleNodeInfo
     $tailscaleServeState = Get-TailscaleServeState -Config $config
+    $managementServeState = Get-TailscaleManagementServeState -Config $config
 }
 catch {
     $tailscaleError = $_.Exception.Message
@@ -64,8 +72,10 @@ catch {
 
 Write-Log "Hostname: $($config.hostname)" "INFO"
 Write-Log "Open WebUI port: $($config.openwebui_port)" "INFO"
+Write-Log "Manager port: $($config.management_port)" "INFO"
 Write-Log "Ollama: $ollamaState" "INFO"
 Write-Log "Docker daemon: $dockerDaemonState" "INFO"
+Write-Log "Manager scheduled task: $(Test-HomelabManagerTaskRegistered)" "INFO"
 Write-Log "Open WebUI container: $openWebUiHealth" "INFO"
 Write-Log "Open WebUI voice-camera patch: $openWebUiRuntimePatchState" "INFO"
 Write-Log "Open WebUI STT model: $($config.stt_model)" "INFO"
@@ -88,11 +98,25 @@ if ($ttsHealth -eq "stopped") {
     Write-Log "Local TTS is stopped; Open WebUI cannot synthesize speech until .\scripts\start.ps1 runs." "WARN"
 }
 
+if ($managerLockInfo) {
+    Write-Log "Manager process: running (PID $($managerLockInfo.pid))" "OK"
+}
+else {
+    Write-Log "Manager process: not running" "WARN"
+}
+
 if ($httpStatus.Ok) {
     Write-Log "Open WebUI URL: $localUrl (HTTP $($httpStatus.StatusCode))" "OK"
 }
 else {
     Write-Log "Open WebUI URL: $localUrl (unreachable)" "WARN"
+}
+
+if ($managerStatus.Ok) {
+    Write-Log "Manager URL: $managerUrl (HTTP $($managerStatus.StatusCode))" "OK"
+}
+else {
+    Write-Log "Manager URL: $managerUrl (unreachable)" "WARN"
 }
 
 if ($config.tts_enabled) {
@@ -111,6 +135,7 @@ Write-Log "Voice/camera fallback model: $($config.voice_vision_fallback_model)" 
 
 if ($tailscaleNodeInfo) {
     Write-Log "Tailscale HTTPS URL: $($tailscaleNodeInfo.HttpsUrl)" "INFO"
+    Write-Log "Manager remote URL: $(Get-HomelabManagerRemoteUrl -Config $config -NodeInfo $tailscaleNodeInfo)" "INFO"
 
     if (-not $tailscaleNodeInfo.MagicDnsEnabled) {
         Write-Log "Tailscale MagicDNS is not enabled for this tailnet." "WARN"
@@ -130,6 +155,16 @@ if ($tailscaleNodeInfo) {
     else {
         Write-Log "Tailscale Serve: not configured for Open WebUI" "WARN"
     }
+
+    if ($managementServeState -and $managementServeState.IsConfiguredExpected) {
+        Write-Log "Manager Tailscale Serve: configured for $($managementServeState.ExpectedProxyTarget)" "OK"
+    }
+    elseif ($managementServeState -and $managementServeState.HasAnyConfiguration) {
+        Write-Log "Manager Tailscale Serve: configured, but not for this repo target" "WARN"
+    }
+    else {
+        Write-Log "Manager Tailscale Serve: not configured for the manager" "WARN"
+    }
 }
 else {
     Write-Log "Tailscale status unavailable: $tailscaleError" "WARN"
@@ -137,4 +172,15 @@ else {
 
 if ($installedModels.Count -gt 0) {
     Write-Log "Installed models: $($installedModels -join ', ')" "INFO"
+}
+
+if ($pendingApply) {
+    Write-Log "Pending apply actions: $(@($pendingApply.remaining_actions) -join ', ')" "WARN"
+}
+
+if ($currentManagerJob) {
+    Write-Log "Current manager job: $($currentManagerJob.action) [$($currentManagerJob.status)]" "INFO"
+}
+elseif ($latestManagerJob) {
+    Write-Log "Latest manager job: $($latestManagerJob.action) [$($latestManagerJob.status)]" "INFO"
 }

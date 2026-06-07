@@ -1,3 +1,4 @@
 {
-  "webui_secret_key": "replace-with-a-long-random-secret"
+  "webui_secret_key": "replace-with-a-long-random-secret",
+  "management_admin_secret": "replace-with-a-long-random-admin-secret"
 }

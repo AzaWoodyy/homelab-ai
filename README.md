@@ -8,6 +8,7 @@ The current stack is intentionally simple:
 - Open WebUI runs in Docker and connects to Ollama.
 - OpenedAI Speech runs in Docker for local text-to-speech.
 - Tailscale is the private remote access and HTTPS layer.
+- A PowerShell manager service provides a remote control dashboard.
 - PowerShell scripts keep setup, start, stop, and validation reproducible.
 
 ## What This Repo Tries To Do
@@ -33,12 +34,14 @@ A few practical notes:
 - Ollama runs on the host, not in Docker.
 - Open WebUI runs in Docker on port `3000` by default, but that port is only bound to `127.0.0.1`.
 - OpenedAI Speech runs in Docker on port `8000` by default, and that port is also only bound to `127.0.0.1`.
+- The manager service listens on `127.0.0.1:3081` by default.
 - Docker data is stored in a named volume, so Open WebUI users and chats persist across normal stop/start cycles.
 - Piper voice files are stored in a Docker volume after the first setup warmup, so TTS can stay local and offline after setup.
 - Open WebUI sometimes falls back to OpenAI-style voice ids such as `alloy` in the speaker UI. This repo maps those aliases back to local Piper voices so TTS still stays local.
 - Local speech-to-text uses Whisper `medium` by default with language auto-detect.
 - When you change `stt.model`, run `.\scripts\setup.ps1` once while internet is available so the new Whisper snapshot is cached for offline use.
 - Remote access is intended to use the Tailscale HTTPS URL for this machine, such as `https://<machine>.<tailnet>.ts.net`.
+- The manager dashboard is intended to use the same machine name on a dedicated HTTPS port, such as `https://<machine>.<tailnet>.ts.net:8443`.
 
 ## Tailscale HTTPS Prerequisites
 
@@ -72,6 +75,18 @@ Check health:
 
 ```powershell
 .\scripts\test.ps1
+```
+
+Start the remote manager:
+
+```powershell
+.\scripts\manager-start.ps1
+```
+
+Check manager health:
+
+```powershell
+.\scripts\manager-test.ps1
 ```
 
 Stop the stack:
@@ -111,6 +126,25 @@ Stop the stack:
 `.\scripts\refresh-models.ps1`
 - Convenience wrapper for `setup.ps1 -RefreshModels`.
 
+`.\scripts\manager-install.ps1 -StartNow`
+- Registers the manager as a Windows Scheduled Task and starts it immediately.
+
+`.\scripts\manager-start.ps1`
+- Starts the host-native manager service on the local machine.
+- Tries to expose the manager on the configured Tailscale HTTPS port.
+
+`.\scripts\manager-stop.ps1`
+- Stops only the manager control surface and removes its Tailscale HTTPS mapping.
+
+`.\scripts\manager-restart.ps1`
+- Restarts the manager service without touching Open WebUI, TTS, or Ollama.
+
+`.\scripts\manager-status.ps1`
+- Shows the manager process state, reachability, remote URL, and pending apply actions.
+
+`.\scripts\manager-test.ps1`
+- Verifies the manager landing page, login flow, auth guard, and authenticated summary API.
+
 ## Config
 
 Main runtime config lives in `config\homelab.json`:
@@ -120,6 +154,10 @@ Main runtime config lives in `config\homelab.json`:
   "hostname": "homelab-ai",
   "openwebui_port": 3000,
   "openwebui_image_tag": "v0.9.5",
+  "management": {
+    "port": 3081,
+    "tailscale_https_port": 8443
+  },
   "tts": {
     "enabled": true,
     "port": 8000,
@@ -140,11 +178,12 @@ Local-only secret overrides live in `config\homelab.local.json`:
 
 ```json
 {
-  "webui_secret_key": "replace-with-a-long-random-secret"
+  "webui_secret_key": "replace-with-a-long-random-secret",
+  "management_admin_secret": "replace-with-a-long-random-admin-secret"
 }
 ```
 
-`config\homelab.local.json` is ignored by git. You can copy `config\homelab.local.example.json` as a starting point, or set `WEBUI_SECRET_KEY` in your shell environment instead.
+`config\homelab.local.json` is ignored by git. You can copy `config\homelab.local.example.json` as a starting point, or set `WEBUI_SECRET_KEY` and `MANAGEMENT_ADMIN_SECRET` in your shell environment instead.
 
 Model config lives in `config\models.json`:
 
@@ -175,6 +214,8 @@ For Open WebUI voice chat and camera mode:
 ## Logs
 
 Every script run writes a timestamped log file to `logs/`. Those logs are local working files and are ignored by git.
+
+The manager also writes runtime state, pending apply metadata, sessions, and job logs under `state/manager/`. That directory is also ignored by git.
 
 ## Docs
 
