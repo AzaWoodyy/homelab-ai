@@ -61,47 +61,46 @@ function Invoke-NativeCommand {
         [string[]]$Arguments = @()
     )
 
-    $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ("homelab-ai-stdout-{0}.log" -f [guid]::NewGuid())
-    $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ("homelab-ai-stderr-{0}.log" -f [guid]::NewGuid())
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $FilePath
+    $startInfo.Arguments = Join-NativeArguments -Arguments $Arguments
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.CreateNoWindow = $true
+    $startInfo.WorkingDirectory = (Get-Location).Path
 
-    try {
-        $process = Start-Process `
-            -FilePath $FilePath `
-            -ArgumentList (Join-NativeArguments -Arguments $Arguments) `
-            -NoNewWindow `
-            -Wait `
-            -PassThru `
-            -RedirectStandardOutput $stdoutPath `
-            -RedirectStandardError $stderrPath
+    $environmentEntries = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
-        $stdout = if (Test-Path -LiteralPath $stdoutPath) {
-            Get-Content -Raw -LiteralPath $stdoutPath
-        }
-        else {
-            ""
-        }
+    foreach ($entry in [System.Environment]::GetEnvironmentVariables().GetEnumerator()) {
+        $environmentEntries[[string]$entry.Key] = [string]$entry.Value
+    }
 
-        $stderr = if (Test-Path -LiteralPath $stderrPath) {
-            Get-Content -Raw -LiteralPath $stderrPath
-        }
-        else {
-            ""
-        }
+    if ($startInfo.PSObject.Properties.Name -contains "Environment" -and $null -ne $startInfo.Environment) {
+        $startInfo.Environment.Clear()
 
-        return [pscustomobject]@{
-            ExitCode = $process.ExitCode
-            StdOut   = $stdout
-            StdErr   = $stderr
+        foreach ($key in $environmentEntries.Keys) {
+            $startInfo.Environment[$key] = $environmentEntries[$key]
         }
     }
-    finally {
-        if (Test-Path -LiteralPath $stdoutPath) {
-            Remove-Item -LiteralPath $stdoutPath -ErrorAction SilentlyContinue
+    else {
+        foreach ($key in $environmentEntries.Keys) {
+            $startInfo.EnvironmentVariables[$key] = $environmentEntries[$key]
         }
+    }
 
-        if (Test-Path -LiteralPath $stderrPath) {
-            Remove-Item -LiteralPath $stderrPath -ErrorAction SilentlyContinue
-        }
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    [void]$process.Start()
+
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+
+    return [pscustomobject]@{
+        ExitCode = $process.ExitCode
+        StdOut   = $stdout
+        StdErr   = $stderr
     }
 }
 

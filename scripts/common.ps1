@@ -14,7 +14,8 @@ $script:HomelabScriptModules = @(
     "docker.ps1",
     "openwebui.ps1",
     "http.ps1",
-    "tailscale.ps1"
+    "tailscale.ps1",
+    "manager.ps1"
 )
 
 foreach ($moduleName in $script:HomelabScriptModules) {

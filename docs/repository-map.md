@@ -15,16 +15,17 @@ This document gives the short version of what each file is for, so a new person 
 `.gitignore`
 - Ignores local-only working files such as script logs.
 - Ignores the local secret override file for Open WebUI.
+- Ignores local manager runtime state under `state/`.
 
 ## config/
 
 `config/homelab.json`
 - Main runtime settings for the local stack.
-- Defines the hostname, the Open WebUI port, the pinned Open WebUI image tag, the preferred voice/camera models, local TTS defaults, and local Whisper STT defaults.
+- Defines the hostname, the Open WebUI port, the manager port settings, the pinned Open WebUI image tag, the preferred voice/camera models, local TTS defaults, and local Whisper STT defaults.
 
 `config/homelab.local.example.json`
 - Example local-only override file for secrets.
-- Shows where to place `WEBUI_SECRET_KEY` without committing it.
+- Shows where to place `WEBUI_SECRET_KEY` and `MANAGEMENT_ADMIN_SECRET` without committing them.
 
 `config/models.json`
 - List of Ollama models the repo expects to exist locally.
@@ -85,9 +86,33 @@ This document gives the short version of what each file is for, so a new person 
 - Small wrapper around `setup.ps1 -RefreshModels`.
 - Exists mainly to make "refresh configured models" obvious.
 
+`scripts/manager-service.ps1`
+- Host-native local web service for the remote management dashboard.
+- Serves the static dashboard UI and authenticated JSON APIs on the manager port.
+
+`scripts/manager-start.ps1`, `scripts/manager-stop.ps1`, `scripts/manager-restart.ps1`
+- Lifecycle helpers for the manager service.
+- Keep manager control independent from the main stack lifecycle.
+
+`scripts/manager-install.ps1`, `scripts/manager-uninstall.ps1`
+- Scheduled-task helpers for making the manager survive reboots.
+
+`scripts/manager-status.ps1`, `scripts/manager-test.ps1`
+- Quick diagnostics for the manager control surface itself.
+
+`scripts/manager-ui/*`
+- Static dashboard assets served by the manager service.
+- Contains the login page, control panel, editing forms, and live job UI.
+
 ## logs/
 
 `logs/*.log`
 - Timestamped output from script runs.
 - Helpful for debugging failed starts, setup issues, or health checks.
 - Ignored by git because they are machine-local working data.
+
+## state/
+
+`state/manager/*`
+- Local-only manager runtime state such as the lock file, sessions, pending apply metadata, and job logs.
+- Ignored by git because it is machine-local operational state.

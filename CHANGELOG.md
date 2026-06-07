@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- A host-native remote management dashboard with a PowerShell control service, authenticated JSON API, static operator UI, and one-job-at-a-time action runner.
+- Manager lifecycle scripts for start, stop, restart, install, uninstall, status, and manager-specific validation.
+- Manager config support in `config/homelab.json` plus local-only `management_admin_secret` support.
+- Local manager runtime state under `state/manager/` for sessions, pending apply metadata, job history, and job logs.
+
+### Changed
+
+- `scripts/status.ps1` now reports manager reachability, remote URLs, manager Tailscale Serve status, and pending apply actions.
+- `README.md` and `docs/repository-map.md` now document the remote manager workflow and new scripts.
+
 ## [0.2.0]
 
 ### Added

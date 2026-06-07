@@ -10,8 +10,24 @@ function Initialize-HomelabScript {
         New-Item -ItemType Directory -Path $logsPath | Out-Null
     }
 
+    if (-not [string]::IsNullOrWhiteSpace($env:HOMELAB_LOG_PATH)) {
+        $overridePath = [System.IO.Path]::GetFullPath($env:HOMELAB_LOG_PATH)
+        $overrideDirectory = Split-Path -Parent $overridePath
+
+        if (-not [string]::IsNullOrWhiteSpace($overrideDirectory) -and -not (Test-Path -LiteralPath $overrideDirectory)) {
+            New-Item -ItemType Directory -Path $overrideDirectory -Force | Out-Null
+        }
+
+        $script:CurrentLogPath = $overridePath
+        return
+    }
+
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $script:CurrentLogPath = Join-Path $logsPath "$ScriptName-$timestamp.log"
+}
+
+function Get-CurrentLogPath {
+    return $script:CurrentLogPath
 }
 
 function Write-Log {
