@@ -2,7 +2,7 @@
 
 This guide covers the target-PC and network setup required to make Wake-on-LAN reliable for the Windows gaming PC that hosts this homelab stack.
 
-This repo no longer acts as the supported runtime home for the relay service itself. Use the companion Wake Relay project in [`wake-relay/`](../wake-relay/README.md) for the always-on machine that will send the magic packet.
+This repo no longer acts as the supported runtime home for the relay service itself. Keep the companion Wake Relay project outside this repo on the always-on machine that will send the magic packet.
 
 The goal is simple:
 

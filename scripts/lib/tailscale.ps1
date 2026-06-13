@@ -382,35 +382,6 @@ function Test-TailscaleServeObjectHasExpectedEndpoint {
     return $false
 }
 
-function Test-TailscaleServeObjectHasAnyConfiguration {
-    param(
-        [object]$InputObject
-    )
-
-    if ($null -eq $InputObject) {
-        return $false
-    }
-
-    $propertyNames = @()
-
-    try {
-        $propertyNames = @(Get-ObjectPropertyNames -InputObject $InputObject)
-    }
-    catch {
-        return $false
-    }
-
-    if ($propertyNames.Count -eq 0) {
-        return $false
-    }
-
-    if ($propertyNames.Count -eq 1 -and $propertyNames[0] -eq "version") {
-        return $false
-    }
-
-    return $true
-}
-
 function Test-TailscaleServeObjectHasAnyConfigurationForPort {
     param(
         [object]$InputObject,

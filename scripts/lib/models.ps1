@@ -27,7 +27,7 @@ function Get-ConfiguredModels {
         throw "Model config file not found: $configPath"
     }
 
-    $rawConfig = Get-Content -Raw -LiteralPath $configPath | ConvertFrom-Json
+    $rawConfig = Read-JsonFile -Path $configPath
 
     if ($null -eq $rawConfig.models -or $rawConfig.models.Count -eq 0) {
         throw "config/models.json must contain at least one model."
@@ -95,8 +95,7 @@ function Save-ConfiguredModels {
         models = $normalizedModels
     }
 
-    $json = $payload | ConvertTo-Json -Depth 5
-    [System.IO.File]::WriteAllText($configPath, ($json + [Environment]::NewLine), [System.Text.UTF8Encoding]::new($false))
+    Write-JsonFile -Path $configPath -Value $payload -Depth 5
 
     return $normalizedModels
 }

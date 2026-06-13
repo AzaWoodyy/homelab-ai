@@ -70,7 +70,7 @@ export const configResponseSchema = z.object({
   pending_apply: pendingApplySchema.optional(),
 });
 
-export const modelsResponseSchema = z.object({
+const modelsResponseSchema = z.object({
   configured: stringListSchema,
   installed: stringListSchema,
   pending_apply: pendingApplySchema.optional(),
@@ -174,7 +174,5 @@ export type JobsSnapshot = z.infer<typeof jobsSnapshotSchema>;
 export type ManagerJob = NonNullable<z.infer<typeof jobSchema>>;
 export type EditableConfig = z.infer<typeof editableConfigSchema>;
 export type ConfigResponse = z.infer<typeof configResponseSchema>;
-export type ModelsResponse = z.infer<typeof modelsResponseSchema>;
 export type ModelSaveResponse = z.infer<typeof modelSaveResponseSchema>;
 export type Summary = z.infer<typeof summarySchema>;
-export type PendingApply = NonNullable<z.infer<typeof pendingApplySchema>>;

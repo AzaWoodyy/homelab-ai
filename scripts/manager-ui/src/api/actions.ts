@@ -1,4 +1,4 @@
-import { apiJson } from "./client";
+import { apiPost } from "./client";
 import { actionResponseSchema } from "./schemas";
 
 export type ManagerAction =
@@ -13,8 +13,5 @@ export type ManagerAction =
   | "manager-stop";
 
 export function runAction(action: ManagerAction): Promise<{ accepted: boolean; job: unknown }> {
-  return apiJson(`/api/actions/${action}`, actionResponseSchema, {
-    method: "POST",
-    body: "{}",
-  });
+  return apiPost(`/api/actions/${action}`, actionResponseSchema);
 }
