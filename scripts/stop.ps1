@@ -4,13 +4,22 @@ Initialize-HomelabScript -ScriptName "stop"
 
 $config = Get-HomelabConfig
 
+Write-Log "Disabling Tailscale HTTPS..." "STEP"
+try {
+    Disable-TailscaleOpenWebUiHttps -Config $config
+    Write-Log "Tailscale HTTPS disabled." "OK"
+}
+catch {
+    Write-Log "Tailscale HTTPS disable skipped: $($_.Exception.Message)" "WARN"
+}
+
 Write-Log "Stopping Open WebUI..." "STEP"
 try {
     [void](Invoke-DockerCompose -Config $config -Arguments @("stop") -RequireDaemon)
-    Write-Log "Open WebUI stopped." "OK"
+    Write-Log "Open WebUI and local TTS services stopped." "OK"
 }
 catch {
-    Write-Log "Open WebUI stop skipped: $($_.Exception.Message)" "WARN"
+    Write-Log "Open WebUI and local TTS stop skipped: $($_.Exception.Message)" "WARN"
 }
 
 Write-Log "Stopping Ollama..." "STEP"

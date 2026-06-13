@@ -15,12 +15,29 @@ function Get-OllamaPath {
         return $command.Source
     }
 
-    $candidatePaths = @(
-        (Join-Path $env:LOCALAPPDATA "Programs\Ollama\ollama.exe"),
-        (Join-Path $env:ProgramFiles "Ollama\ollama.exe")
-    )
+    $candidatePaths = New-Object System.Collections.Generic.List[string]
 
-    foreach ($candidatePath in $candidatePaths) {
+    if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+        $candidatePaths.Add((Join-Path $env:LOCALAPPDATA "Programs\Ollama\ollama.exe"))
+    }
+
+    foreach ($programFilesPath in @($env:ProgramFiles, $env:ProgramW6432)) {
+        if (-not [string]::IsNullOrWhiteSpace($programFilesPath)) {
+            $candidatePaths.Add((Join-Path $programFilesPath "Ollama\ollama.exe"))
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($env:SystemDrive)) {
+        $usersRoot = Join-Path $env:SystemDrive "Users"
+
+        if (Test-Path -LiteralPath $usersRoot) {
+            foreach ($profileDirectory in (Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue)) {
+                $candidatePaths.Add((Join-Path $profileDirectory.FullName "AppData\Local\Programs\Ollama\ollama.exe"))
+            }
+        }
+    }
+
+    foreach ($candidatePath in ($candidatePaths | Select-Object -Unique)) {
         if (Test-Path -LiteralPath $candidatePath) {
             return $candidatePath
         }
@@ -37,4 +54,106 @@ function Get-DockerPath {
     }
 
     return $command.Source
+}
+
+function New-HomelabCommandSpec {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+
+        [string[]]$BaseArguments = @(),
+
+        [string[]]$VersionArguments = @("--version"),
+
+        [Parameter(Mandatory = $true)]
+        [string]$DisplayName
+    )
+
+    return [pscustomobject]@{
+        FilePath         = $FilePath
+        BaseArguments    = @($BaseArguments)
+        VersionArguments = @($VersionArguments)
+        DisplayName      = $DisplayName
+    }
+}
+
+function Invoke-HomelabCommandSpec {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$CommandSpec,
+
+        [string[]]$Arguments = @()
+    )
+
+    return Invoke-NativeCommand -FilePath $CommandSpec.FilePath -Arguments (@($CommandSpec.BaseArguments) + @($Arguments))
+}
+
+function Invoke-HomelabCommandSpecWithTimeout {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$CommandSpec,
+
+        [string[]]$Arguments = @(),
+
+        [Parameter(Mandatory = $true)]
+        [int]$TimeoutMs
+    )
+
+    return Invoke-NativeCommandWithTimeout -FilePath $CommandSpec.FilePath -Arguments (@($CommandSpec.BaseArguments) + @($Arguments)) -TimeoutMs $TimeoutMs
+}
+
+function Get-HomelabCommandSpecVersion {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$CommandSpec
+    )
+
+    $result = Invoke-HomelabCommandSpec -CommandSpec $CommandSpec -Arguments $CommandSpec.VersionArguments
+
+    if ($result.ExitCode -ne 0) {
+        $message = ($result.StdErr + [Environment]::NewLine + $result.StdOut).Trim()
+        throw $message
+    }
+
+    return (($result.StdOut -split "\r?\n") | Select-Object -First 1).Trim()
+}
+
+function Get-DockerCommandSpec {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    if (Test-HomelabContainerBackendWsl -Config $Config) {
+        Assert-WslDistroReady -Config $Config
+
+        return New-HomelabCommandSpec `
+            -FilePath (Get-WslExecutablePath) `
+            -BaseArguments (Get-WslCommandArguments -Config $Config -Arguments @("docker")) `
+            -DisplayName "docker (WSL)"
+    }
+
+    return New-HomelabCommandSpec `
+        -FilePath (Get-DockerPath) `
+        -DisplayName "docker"
+}
+
+function Get-OllamaCommandSpec {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    if (Test-HomelabOllamaBackendWsl -Config $Config) {
+        Assert-WslDistroReady -Config $Config
+
+        return New-HomelabCommandSpec `
+            -FilePath (Get-WslExecutablePath) `
+            -BaseArguments (Get-WslCommandArguments -Config $Config -Arguments @("ollama")) `
+            -DisplayName "ollama (WSL)"
+    }
+
+    return New-HomelabCommandSpec `
+        -FilePath (Get-OllamaPath) `
+        -DisplayName "ollama"
 }

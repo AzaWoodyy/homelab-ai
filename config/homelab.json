@@ -1,5 +1,32 @@
 {
   "hostname": "homelab-ai",
   "openwebui_port": 3000,
-  "openwebui_image_tag": "v0.9.5"
+  "openwebui_image_tag": "v0.9.6",
+  "openwebui": {
+    "mcp_initialize_timeout": 30,
+    "kb_exec_enabled": false,
+    "profile_image_max_data_uri_size": null
+  },
+  "runtime": {
+    "container_backend": "windows-docker",
+    "wsl_distro": "Ubuntu",
+    "ollama_backend": "windows-process"
+  },
+  "management": {
+    "port": 3081,
+    "tailscale_https_port": 8443
+  },
+  "voice_vision_model": "llava:13b",
+  "voice_vision_fallback_model": "qwen3.5:9b",
+  "tts": {
+    "enabled": true,
+    "port": 8000,
+    "default_voice": "fr_FR-siwis-medium",
+    "fallback_voice": "en_US-lessac-medium"
+  },
+  "stt": {
+    "model": "medium",
+    "language": "",
+    "auto_update": false
+  }
 }

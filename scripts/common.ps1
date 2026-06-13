@@ -7,12 +7,17 @@ $script:CurrentLogPath = $null
 $script:HomelabScriptModules = @(
     "logging.ps1",
     "runtime.ps1",
+    "utilities.ps1",
+    "power.ps1",
     "models.ps1",
     "config.ps1",
     "dependencies.ps1",
     "ollama.ps1",
     "docker.ps1",
-    "http.ps1"
+    "openwebui.ps1",
+    "http.ps1",
+    "tailscale.ps1",
+    "manager.ps1"
 )
 
 foreach ($moduleName in $script:HomelabScriptModules) {
