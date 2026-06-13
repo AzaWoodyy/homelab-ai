@@ -1,19 +1,19 @@
 {
     "models":  [
-        "qwen3:8b",
-        "qwen3:14b",
-        "qwen3:32b",
-        "qwen3-coder",
-        "deepseek-r1:32b",
-        "nemotron3:33b",
-        "llava:7b",
-        "llava:13b",
-        "llava:34b",
-        "translategemma:4b",
-        "translategemma:12b",
-        "qwen3.5:9b",
-        "qwen3.5:27b",
-        "qwen3.5:35b",
-        "gpt-oss:20b"
-    ]
+                   "qwen3:8b",
+                   "qwen3:14b",
+                   "qwen3:32b",
+                   "qwen3-coder",
+                   "deepseek-r1:32b",
+                   "nemotron3:33b",
+                   "llava:7b",
+                   "llava:13b",
+                   "llava:34b",
+                   "translategemma:4b",
+                   "translategemma:12b",
+                   "qwen3.5:9b",
+                   "qwen3.5:27b",
+                   "qwen3.5:35b",
+                   "gpt-oss:20b"
+               ]
 }
