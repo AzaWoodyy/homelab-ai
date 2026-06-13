@@ -9,6 +9,16 @@ Initialize-HomelabScript -ScriptName "setup"
 $config = Get-HomelabConfig
 $models = Get-ConfiguredModels
 
+if ($config.hermes_enabled) {
+    Write-Log "Checking Hermes Agent..." "STEP"
+    Assert-HermesConfigured -Config $config
+    Write-Log (Get-HermesVersion -Config $config) "OK"
+
+    Write-Log "Syncing Hermes runtime config..." "STEP"
+    $hermesSync = Sync-HermesRuntimeConfig -Config $config
+    Write-Log "Hermes config is ready in $($hermesSync.home)." "OK"
+}
+
 Write-Log "Checking Ollama..." "STEP"
 Write-Log (Get-OllamaVersion -Config $config) "OK"
 

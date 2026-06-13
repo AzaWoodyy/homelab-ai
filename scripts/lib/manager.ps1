@@ -677,6 +677,9 @@ function Get-HomelabManagerActionDescriptor {
         "test" { Join-Path $script:HomelabRoot "scripts\test.ps1" }
         "sleep" { Join-Path $script:HomelabRoot "scripts\sleep.ps1" }
         "shutdown" { Join-Path $script:HomelabRoot "scripts\shutdown.ps1" }
+        "hermes-start" { Join-Path $script:HomelabRoot "scripts\hermes-start.ps1" }
+        "hermes-stop" { Join-Path $script:HomelabRoot "scripts\hermes-stop.ps1" }
+        "hermes-restart" { Join-Path $script:HomelabRoot "scripts\hermes-restart.ps1" }
         default { $null }
     }
 
@@ -1576,6 +1579,8 @@ function Get-HomelabManagerReadOnlyConfig {
         runtime_ollama_backend  = $config.runtime_ollama_backend
         runtime_wsl_distro      = $config.runtime_wsl_distro
         tts_port                = $config.tts_port
+        hermes_home             = $config.hermes_home
+        hermes_api_port         = $config.hermes_api_server_port
     }
 }
 
@@ -2087,6 +2092,37 @@ function Get-HomelabManagerFullSummarySnapshot {
     $openWebUiUrl = "http://127.0.0.1:$($config.openwebui_port)"
     $managementUrl = Get-HomelabManagerLocalUrl -Config $config
     $ttsUrl = "http://127.0.0.1:$($config.tts_port)"
+    $hermesSummary = $null
+
+    try {
+        $hermesSummary = Get-HermesSummary -Config $config
+    }
+    catch {
+        Add-HomelabManagerSummaryProbeError -Errors $Errors -Message "Hermes probe failed: $($_.Exception.Message)"
+        $hermesSummary = [ordered]@{
+            enabled       = [bool]$config.hermes_enabled
+            cli_available = $false
+            version       = $null
+            home          = [string]$config.hermes_home
+            model         = [string]$config.hermes_model
+            missing_config = @($_.Exception.Message)
+            gateway       = [ordered]@{
+                enabled    = [bool]$config.hermes_gateway_enabled
+                running    = $false
+                pid        = $null
+                started_at = $null
+            }
+            api_server    = [ordered]@{
+                enabled    = [bool]$config.hermes_api_server_enabled
+                local_url  = Get-HermesApiServerUrl -Config $config
+                reachable  = $false
+                model_name = [string]$config.hermes_api_server_model_name
+            }
+            platforms     = Get-HermesPlatformStatus -Config $config
+            log_tail      = @()
+        }
+    }
+
     $openWebUiHttp = Test-HttpEndpoint -Url $openWebUiUrl -TimeoutSeconds 2
     $managementHttp = [pscustomobject]@{ Ok = $true; StatusCode = 200 }
     $ttsHttp = if ($config.tts_enabled) {
@@ -2147,6 +2183,7 @@ function Get-HomelabManagerFullSummarySnapshot {
                 local_url       = $ttsUrl
                 local_reachable = if ($null -ne $ttsHttp) { [bool]$ttsHttp.Ok } else { $false }
             }
+            hermes = $hermesSummary
         }
         models = [ordered]@{
             configured = @(Get-ConfiguredModels)
@@ -2191,6 +2228,7 @@ function New-HomelabManagerDefaultSummary {
     $managementUrl = Get-HomelabManagerLocalUrl -Config $Config
     $openWebUiUrl = "http://127.0.0.1:$($Config.openwebui_port)"
     $ttsUrl = "http://127.0.0.1:$($Config.tts_port)"
+    $hermesSummary = Get-HermesSummary -Config $Config
 
     return [ordered]@{
         manager = [ordered]@{
@@ -2223,6 +2261,7 @@ function New-HomelabManagerDefaultSummary {
                 local_url       = $ttsUrl
                 local_reachable = $false
             }
+            hermes = $hermesSummary
         }
         models = [ordered]@{
             configured = @(Get-ConfiguredModels)
@@ -2265,6 +2304,7 @@ function Get-HomelabManagerFastSummary {
     $manager = Get-HomelabObjectPropertyValue -InputObject $summary -Name "manager" -DefaultValue $null
     $stack = Get-HomelabObjectPropertyValue -InputObject $summary -Name "stack" -DefaultValue $null
     $tts = if ($null -ne $stack) { Get-HomelabObjectPropertyValue -InputObject $stack -Name "tts" -DefaultValue $null } else { $null }
+    $hermes = if ($null -ne $stack) { Get-HomelabObjectPropertyValue -InputObject $stack -Name "hermes" -DefaultValue $null } else { $null }
     $models = Get-HomelabObjectPropertyValue -InputObject $summary -Name "models" -DefaultValue $null
     $configSection = Get-HomelabObjectPropertyValue -InputObject $summary -Name "config" -DefaultValue $null
 
@@ -2280,6 +2320,10 @@ function Get-HomelabManagerFastSummary {
     if ($null -ne $tts) {
         Set-HomelabObjectPropertyValue -InputObject $tts -Name "enabled" -Value ([bool]$config.tts_enabled)
         Set-HomelabObjectPropertyValue -InputObject $tts -Name "local_url" -Value "http://127.0.0.1:$($config.tts_port)"
+    }
+
+    if ($null -ne $stack) {
+        Set-HomelabObjectPropertyValue -InputObject $stack -Name "hermes" -Value (Get-HermesSummary -Config $config)
     }
 
     if ($null -ne $models) {
@@ -2563,6 +2607,10 @@ function Handle-HomelabManagerApiRequest {
         }
         "GET /api/models" {
             Send-JsonResponse -Response $response -StatusCode 200 -Value (Get-HomelabManagerModelsResponse)
+            return
+        }
+        "GET /api/hermes" {
+            Send-JsonResponse -Response $response -StatusCode 200 -Value (Get-HermesSummary -Config (Get-HomelabConfig))
             return
         }
         "PUT /api/models" {

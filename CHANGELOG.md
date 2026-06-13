@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Optional Hermes Agent support with repo-managed `HERMES_HOME`, generated local Hermes `.env`/`config.yaml`, gateway lifecycle scripts, manager actions, status probes, and an Agent dashboard page.
+- `hermes3:8b` as a configured Ollama model for the Hermes Agent local model path.
+- Local-only Hermes secret examples for Discord, Photon iMessage, and the Hermes API server.
+- Photon iMessage support in Hermes config, generated environment, manager UI readiness, and docs.
+- Hermes validation in setup/test flows, including explicit missing-secret reporting when Hermes is enabled.
 - A host-native remote management dashboard with a PowerShell control service, authenticated JSON API, static operator UI, and one-job-at-a-time action runner.
 - Manager lifecycle scripts for start, stop, restart, install, uninstall, status, and manager-specific validation.
 - Manager config support in `config/homelab.json` plus local-only `management_admin_secret` support.

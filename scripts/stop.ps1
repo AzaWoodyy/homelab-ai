@@ -4,6 +4,11 @@ Initialize-HomelabScript -ScriptName "stop"
 
 $config = Get-HomelabConfig
 
+if ($config.hermes_enabled) {
+    Write-Log "Stopping Hermes Agent gateway..." "STEP"
+    Stop-HermesGateway -Config $config
+}
+
 Write-Log "Disabling Tailscale HTTPS..." "STEP"
 try {
     Disable-TailscaleOpenWebUiHttps -Config $config

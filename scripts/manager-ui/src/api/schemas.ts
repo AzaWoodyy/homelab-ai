@@ -68,6 +68,58 @@ export const editableConfigSchema = z.object({
     language: z.string(),
     auto_update: z.boolean(),
   }),
+  hermes: z.object({
+    enabled: z.boolean(),
+    model: z.string().min(1, "Required"),
+    api_server: z.object({
+      enabled: z.boolean(),
+      port: z.number().int().positive("Must be greater than 0").max(65535, "Must be 65535 or lower"),
+      model_name: z.string().min(1, "Required"),
+    }),
+    discord: z.object({
+      enabled: z.boolean(),
+      require_mention: z.boolean(),
+      free_response_channels: z.string(),
+    }),
+    photon: z.object({
+      enabled: z.boolean(),
+      sidecar_port: z.number().int().positive("Must be greater than 0").max(65535, "Must be 65535 or lower"),
+      sidecar_autostart: z.boolean(),
+      require_mention: z.boolean(),
+      mention_patterns: z.string(),
+    }),
+  }),
+});
+
+const hermesPlatformSchema = z.object({
+  enabled: z.boolean(),
+  configured: z.boolean(),
+});
+
+export const hermesSummarySchema = z.object({
+  enabled: z.boolean(),
+  cli_available: z.boolean(),
+  version: nullableStringSchema,
+  home: z.string(),
+  model: z.string(),
+  missing_config: stringListSchema.default([]),
+  gateway: z.object({
+    enabled: z.boolean(),
+    running: z.boolean(),
+    pid: z.number().nullable(),
+    started_at: nullableStringSchema.optional(),
+  }),
+  api_server: z.object({
+    enabled: z.boolean(),
+    local_url: z.string(),
+    reachable: z.boolean(),
+    model_name: z.string(),
+  }),
+  platforms: z.object({
+    discord: hermesPlatformSchema,
+    photon: hermesPlatformSchema,
+  }),
+  log_tail: logTailSchema.default([]),
 });
 
 export const configResponseSchema = z.object({
@@ -128,6 +180,7 @@ export const summarySchema = z.object({
       local_url: z.string(),
       local_reachable: z.boolean(),
     }),
+    hermes: hermesSummarySchema,
   }),
   models: z.object({
     configured: stringListSchema,
@@ -181,4 +234,5 @@ export type ManagerJob = NonNullable<z.infer<typeof jobSchema>>;
 export type EditableConfig = z.infer<typeof editableConfigSchema>;
 export type ConfigResponse = z.infer<typeof configResponseSchema>;
 export type ModelSaveResponse = z.infer<typeof modelSaveResponseSchema>;
+export type HermesSummary = z.infer<typeof hermesSummarySchema>;
 export type Summary = z.infer<typeof summarySchema>;

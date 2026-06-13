@@ -7,6 +7,7 @@ The current stack is intentionally simple:
 - Ubuntu runs inside WSL 2 and hosts Docker Engine plus Ollama.
 - Open WebUI runs in Docker and connects to Ollama through `host.docker.internal`.
 - OpenedAI Speech runs in Docker for local text-to-speech.
+- Hermes Agent can run as an optional local messaging gateway for Discord, Photon iMessage, and an OpenAI-compatible agent API.
 - Tailscale is the private remote access and HTTPS layer.
 - A PowerShell manager service provides a remote control dashboard.
 - PowerShell scripts remain the operator surface on Windows and call Docker/Ollama through `wsl.exe`.
@@ -29,6 +30,10 @@ The speech path is:
 
 `Microphone -> Open WebUI STT (local Whisper) -> Ollama model -> OpenedAI Speech (Piper) -> Speaker`
 
+The Hermes messaging path is:
+
+`Discord or iMessage -> Hermes gateway -> Hermes Agent -> Ollama/Hermes model + configured tools`
+
 A few practical notes:
 
 - Ollama runs on Windows by default and can reuse the configured local models path.
@@ -36,6 +41,8 @@ A few practical notes:
 - Open WebUI runs in Docker on port `3000` by default, but that port is only bound to `127.0.0.1`.
 - OpenedAI Speech runs in Docker on port `8000` by default, and that port is also only bound to `127.0.0.1`.
 - The manager service listens on `127.0.0.1:3081` by default.
+- When enabled, Hermes uses `state/hermes` as `HERMES_HOME`, keeps generated Hermes `.env` and `config.yaml` files there, and runs as a host-native hidden user process.
+- Hermes API server defaults to `127.0.0.1:8642` and can be added to Open WebUI as an OpenAI-compatible connection named `Hermes Agent`.
 - Docker data is stored in a named volume, so Open WebUI users and chats persist across normal stop/start cycles.
 - Piper voice files are stored in a Docker volume after the first setup warmup, so TTS can stay local and offline after setup.
 - Open WebUI sometimes falls back to OpenAI-style voice ids such as `alloy` in the speaker UI. This repo maps those aliases back to local Piper voices so TTS still stays local.
@@ -110,6 +117,12 @@ Start the remote manager:
 .\scripts\manager-start.ps1
 ```
 
+Start only Hermes Agent after enabling it:
+
+```powershell
+.\scripts\hermes-start.ps1
+```
+
 Check manager health:
 
 ```powershell
@@ -130,6 +143,7 @@ Stop the stack:
 - Pulls only missing models.
 - Reuses `config\homelab.local.json` `ollama.models_path` when you want Ollama model blobs to live outside the default WSL root filesystem.
 - Pulls the local TTS image and warms the configured Piper voices once.
+- When Hermes is enabled, validates the Hermes CLI, checks local secrets, and syncs generated Hermes runtime config under `state\hermes`.
 
 `.\scripts\setup.ps1 -RefreshModels`
 - Re-pulls configured models even if they are already installed.
@@ -139,8 +153,10 @@ Stop the stack:
 - Starts Open WebUI and the local TTS service with Docker Compose.
 - Waits until both local HTTP services are reachable.
 - Configures Tailscale Serve so the remote URL is HTTPS on the tailnet.
+- Starts the Hermes gateway when `hermes.enabled` is true.
 
 `.\scripts\stop.ps1`
+- Stops the Hermes gateway when `hermes.enabled` is true.
 - Removes the repo-managed Tailscale HTTPS mapping.
 - Stops Open WebUI and the local TTS service.
 - Stops Ollama.
@@ -177,6 +193,11 @@ wsl -d <your-distro> -- sudo rm -f /etc/apt/sources.list.d/docker.list
 
 `.\scripts\refresh-models.ps1`
 - Convenience wrapper for `setup.ps1 -RefreshModels`.
+
+`.\scripts\hermes-start.ps1`, `.\scripts\hermes-stop.ps1`, `.\scripts\hermes-restart.ps1`
+- Manage only the Hermes gateway process.
+- Use the repo-local `HERMES_HOME` from `config\homelab.json`.
+- Require Hermes Agent to be installed separately and available as `hermes` on PATH.
 
 `.\scripts\manager-install.ps1 -StartNow`
 - Registers the manager as a Windows user-logon Scheduled Task and starts it immediately.
@@ -244,6 +265,32 @@ Main runtime config lives in `config\homelab.json`:
     "port": 3081,
     "tailscale_https_port": 8443
   },
+  "hermes": {
+    "enabled": false,
+    "home": "state\\hermes",
+    "model": "hermes3:8b",
+    "gateway": {
+      "enabled": true
+    },
+    "api_server": {
+      "enabled": true,
+      "host": "127.0.0.1",
+      "port": 8642,
+      "model_name": "Hermes Agent"
+    },
+    "discord": {
+      "enabled": true,
+      "require_mention": true,
+      "free_response_channels": ""
+    },
+    "photon": {
+      "enabled": true,
+      "sidecar_port": 8789,
+      "sidecar_autostart": true,
+      "require_mention": false,
+      "mention_patterns": ""
+    }
+  },
   "tts": {
     "enabled": true,
     "port": 8000,
@@ -272,6 +319,18 @@ Local-only secret overrides live in `config\homelab.local.json`:
 {
   "webui_secret_key": "replace-with-a-long-random-secret",
   "management_admin_secret": "replace-with-a-long-random-admin-secret",
+  "hermes": {
+    "api_server_key": "replace-with-a-long-random-hermes-api-key",
+    "discord": {
+      "bot_token": "replace-with-discord-bot-token",
+      "allowed_users": "123456789012345678"
+    },
+    "photon": {
+      "project_id": "",
+      "project_secret": "",
+      "allowed_users": "+15551234567"
+    }
+  },
   "ollama": {
     "models_path": "D:\\dev\\ollama"
   }
@@ -281,6 +340,27 @@ Local-only secret overrides live in `config\homelab.local.json`:
 `config\homelab.local.json` is ignored by git. You can copy `config\homelab.local.example.json` as a starting point, or set `WEBUI_SECRET_KEY` and `MANAGEMENT_ADMIN_SECRET` in your shell environment instead.
 
 If `ollama.models_path` is set and the Ollama backend is `wsl-service`, `.\scripts\wsl-bootstrap.ps1` configures the WSL `ollama` service to use the translated Linux path, such as `/mnt/d/dev/ollama`. That lets the repo keep model blobs on `D:\dev\ollama` while the runtime stays inside WSL.
+
+## Hermes Agent
+
+Hermes support is optional and disabled until `hermes.enabled` is set to `true`.
+
+Before enabling it:
+
+- Install Hermes Agent so `hermes --version` works in PowerShell.
+- Run `hermes model` once and choose a custom/local endpoint that points at this machine's Ollama with a model that has at least a 64K context window.
+- Run `hermes gateway setup` and select Discord plus Photon iMessage, or run `hermes photon setup --phone +15551234567` directly for Photon.
+- Keep secrets in `config\homelab.local.json`; the scripts generate `state\hermes\.env` from that local file and preserve wizard-owned values such as `PHOTON_PROJECT_ID` and `PHOTON_PROJECT_SECRET`.
+- Use allowlists for every channel. Hermes denies unknown users by default, and this repo treats that as the supported posture.
+
+Recommended channel rollout:
+
+- Discord first, using a bot token plus `DISCORD_ALLOWED_USERS` or roles.
+- Photon iMessage second, using a Photon account, Node.js 18.17 or newer on PATH, and an E.164 phone number allowlist or Hermes pairing.
+
+The manager dashboard includes an Agent page with Hermes gateway state, API reachability, platform readiness, missing local config, and recent gateway logs.
+
+Open WebUI can keep using Ollama directly. If `hermes.api_server.enabled` is true, add `http://host.docker.internal:8642/v1` as an OpenAI-compatible connection in Open WebUI and use the local Hermes API key from `config\homelab.local.json`.
 
 Model config lives in `config\models.json`:
 

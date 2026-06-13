@@ -44,6 +44,11 @@ Wait-ForOpenWebUi -Config $config
 Assert-OpenWebUiCanProxyTts -Config $config
 Write-Log "Persisted Open WebUI audio settings and runtime voice-camera patch are aligned." "OK"
 
+if ($config.hermes_enabled) {
+    Write-Log "Starting Hermes Agent gateway..." "STEP"
+    Start-HermesGateway -Config $config
+}
+
 $localUrl = "http://localhost:$($config.openwebui_port)"
 $ttsUrl = "http://127.0.0.1:$($config.tts_port)"
 
@@ -56,3 +61,9 @@ if ($config.tts_enabled) {
     Write-Log "Local TTS URL: $ttsUrl" "INFO"
 }
 Write-Log "Recommended voice/camera model: $($config.voice_vision_model) (fallback: $($config.voice_vision_fallback_model))" "INFO"
+if ($config.hermes_enabled) {
+    Write-Log "Hermes Agent model: $($config.hermes_model)" "INFO"
+    if ($config.hermes_api_server_enabled) {
+        Write-Log "Hermes API server: $(Get-HermesApiServerUrl -Config $config)" "INFO"
+    }
+}

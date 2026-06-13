@@ -1,4 +1,4 @@
-import { Moon, Power, RotateCcw, ShieldAlert } from "lucide-react";
+import { Bot, Moon, Power, RotateCcw, ShieldAlert } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { runAction, type ManagerAction } from "../api/actions";
@@ -31,6 +31,14 @@ const groups: Array<{ title: string; actions: ActionDef[] }> = [
   {
     title: "Models",
     actions: [{ action: "refresh-models", label: "Refresh models", tone: "soft" }],
+  },
+  {
+    title: "Hermes Agent",
+    actions: [
+      { action: "hermes-start", label: "Start Hermes", tone: "soft" },
+      { action: "hermes-stop", label: "Stop Hermes", tone: "ghost" },
+      { action: "hermes-restart", label: "Restart Hermes", tone: "ghost" },
+    ],
   },
   {
     title: "Host power",
@@ -147,5 +155,6 @@ function iconForAction(action: ManagerAction) {
   if (action === "shutdown") return <Power size={15} />;
   if (action === "manager-restart") return <RotateCcw size={15} />;
   if (action === "manager-stop") return <ShieldAlert size={15} />;
+  if (action.startsWith("hermes-")) return <Bot size={15} />;
   return undefined;
 }

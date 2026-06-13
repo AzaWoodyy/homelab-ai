@@ -15,6 +15,7 @@ $script:HomelabScriptModules = @(
     "ollama.ps1",
     "docker.ps1",
     "openwebui.ps1",
+    "hermes.ps1",
     "http.ps1",
     "tailscale.ps1",
     "manager.ps1"

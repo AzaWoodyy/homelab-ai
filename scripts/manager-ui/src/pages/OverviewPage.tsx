@@ -54,6 +54,16 @@ export function OverviewPage({ summary }: { summary: Summary }) {
           ]}
         />
         <MetricCard
+          title="Hermes Agent"
+          state={!summary.stack.hermes.enabled ? "Disabled" : summary.stack.hermes.gateway.running ? "Running" : "Stopped"}
+          tone={!summary.stack.hermes.enabled ? "muted" : summary.stack.hermes.gateway.running ? "ok" : "warn"}
+          rows={[
+            { label: "Model", value: summary.stack.hermes.model },
+            { label: "API", value: summary.stack.hermes.api_server.reachable ? "reachable" : "offline" },
+            { label: "CLI", value: summary.stack.hermes.cli_available ? "found" : "missing" },
+          ]}
+        />
+        <MetricCard
           title="Models"
           state={`${installed}/${configured}`}
           tone={installed >= configured && configured > 0 ? "ok" : installed === 0 ? "warn" : "muted"}

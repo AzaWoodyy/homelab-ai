@@ -55,6 +55,7 @@ $managerLockInfo = Get-HomelabManagerLockInfo
 $pendingApply = Get-HomelabManagerPendingApplyState
 $currentManagerJob = Get-HomelabManagerCurrentJob
 $latestManagerJob = Get-HomelabManagerLastJob
+$hermesSummary = Get-HermesSummary -Config $config
 
 if ($ollamaState -eq "ready") {
     $installedModels = Get-InstalledOllamaModels -Config $config
@@ -140,6 +141,29 @@ if ($config.tts_enabled) {
 
 Write-Log "Recommended voice/camera model: $($config.voice_vision_model)" "INFO"
 Write-Log "Voice/camera fallback model: $($config.voice_vision_fallback_model)" "INFO"
+
+if ($hermesSummary.enabled) {
+    Write-Log "Hermes Agent: enabled, gateway=$(if ($hermesSummary.gateway.running) { 'running' } else { 'stopped' }), model=$($hermesSummary.model)" "INFO"
+
+    if ($hermesSummary.cli_available) {
+        Write-Log "Hermes CLI: $($hermesSummary.version)" "OK"
+    }
+    else {
+        Write-Log "Hermes CLI: not found" "WARN"
+    }
+
+    if ($hermesSummary.api_server.enabled) {
+        $apiState = if ($hermesSummary.api_server.reachable) { "reachable" } else { "unreachable" }
+        Write-Log "Hermes API server: $($hermesSummary.api_server.local_url) ($apiState)" "INFO"
+    }
+
+    if (@($hermesSummary.missing_config).Count -gt 0) {
+        Write-Log "Hermes missing config: $(@($hermesSummary.missing_config) -join ', ')" "WARN"
+    }
+}
+else {
+    Write-Log "Hermes Agent: disabled" "INFO"
+}
 
 if ($tailscaleNodeInfo) {
     Write-Log "Tailscale HTTPS URL: $($tailscaleNodeInfo.HttpsUrl)" "INFO"

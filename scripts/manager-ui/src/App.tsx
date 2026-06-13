@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { Activity, Boxes, FileText, ListChecks, LogOut, Play, RefreshCcw, Settings, Shield } from "lucide-react";
+import { Activity, Bot, Boxes, FileText, ListChecks, LogOut, Play, RefreshCcw, Settings, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "./api/client";
 import { getSession, login, logout } from "./api/auth";
@@ -15,14 +15,16 @@ import { ActionsPage } from "./pages/ActionsPage";
 import { ConfigPage } from "./pages/ConfigPage";
 import { ModelsPage } from "./pages/ModelsPage";
 import { JobsPage } from "./pages/JobsPage";
+import { AgentPage } from "./pages/AgentPage";
 
-type Section = "overview" | "actions" | "config" | "models" | "jobs";
+type Section = "overview" | "actions" | "config" | "models" | "agent" | "jobs";
 
 const navItems: Array<{ id: Section; label: string; icon: React.ComponentType<{ size?: number }> }> = [
   { id: "overview", label: "Overview", icon: Activity },
   { id: "actions", label: "Actions", icon: Play },
   { id: "config", label: "Config", icon: Settings },
   { id: "models", label: "Models", icon: Boxes },
+  { id: "agent", label: "Agent", icon: Bot },
   { id: "jobs", label: "Jobs", icon: ListChecks },
 ];
 
@@ -152,6 +154,7 @@ export function App() {
                 {section === "actions" && <ActionsPage summary={summary} />}
                 {section === "config" && <ConfigPage summary={summary} />}
                 {section === "models" && <ModelsPage summary={summary} />}
+                {section === "agent" && <AgentPage hermes={summary.stack.hermes} />}
                 {section === "jobs" && <JobsPage jobs={summary.jobs} />}
               </>
             )}

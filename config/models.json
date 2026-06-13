@@ -17,6 +17,7 @@
                    "qwen3.5:9b",
                    "qwen3.5:27b",
                    "qwen3.5:35b",
-                   "gpt-oss:20b"
+                   "gpt-oss:20b",
+                   "hermes3:8b"
                ]
 }

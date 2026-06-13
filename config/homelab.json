@@ -16,6 +16,32 @@
     "port": 3081,
     "tailscale_https_port": 8443
   },
+  "hermes": {
+    "enabled": true,
+    "home": "state\\hermes",
+    "model": "hermes3:8b",
+    "gateway": {
+      "enabled": true
+    },
+    "api_server": {
+      "enabled": true,
+      "host": "127.0.0.1",
+      "port": 8642,
+      "model_name": "Hermes Agent"
+    },
+    "discord": {
+      "enabled": true,
+      "require_mention": true,
+      "free_response_channels": ""
+    },
+    "photon": {
+      "enabled": true,
+      "sidecar_port": 8789,
+      "sidecar_autostart": true,
+      "require_mention": false,
+      "mention_patterns": ""
+    }
+  },
   "voice_vision_model": "llava:13b",
   "voice_vision_fallback_model": "qwen3.5:9b",
   "tts": {
