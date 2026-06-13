@@ -11,6 +11,7 @@
                    "llava:34b",
                    "translategemma:4b",
                    "translategemma:12b",
+                   "gemma4:12b",
                    "qwen3.5:9b",
                    "qwen3.5:27b",
                    "qwen3.5:35b",
