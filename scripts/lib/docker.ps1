@@ -330,6 +330,9 @@ function Get-ComposeEnvironmentValues {
     return [ordered]@{
         OPENWEBUI_PORT            = [string]$Config.openwebui_port
         OPENWEBUI_IMAGE_TAG       = [string]$Config.openwebui_image_tag
+        MCP_INITIALIZE_TIMEOUT    = [string]$Config.openwebui_mcp_initialize_timeout
+        ENABLE_KB_EXEC            = if ($Config.openwebui_kb_exec_enabled) { "true" } else { "false" }
+        PROFILE_IMAGE_MAX_DATA_URI_SIZE = if ($null -ne $Config.openwebui_profile_image_max_data_uri_size) { [string]$Config.openwebui_profile_image_max_data_uri_size } else { "" }
         OPENEDAI_SPEECH_PORT      = [string]$Config.tts_port
         OLLAMA_BASE_URL           = "http://$($Config.ollama_host):$($Config.ollama_port)"
         AUDIO_TTS_ENGINE          = if ($Config.tts_enabled) { "openai" } else { "" }

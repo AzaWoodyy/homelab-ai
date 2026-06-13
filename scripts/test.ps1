@@ -102,6 +102,34 @@ Invoke-Check -Name "Validate Docker Compose config" -ScriptBlock {
     "Compose config rendered successfully."
 }
 
+Invoke-Check -Name "Validate Open WebUI advanced configuration" -ScriptBlock {
+    if (-not $script:dockerDaemonReady) {
+        return New-SkippedCheckResult -Reason "Docker daemon is not running."
+    }
+
+    $renderedConfig = Get-ComposeRenderedConfig -Config $script:config
+
+    if ($renderedConfig -notmatch ("MCP_INITIALIZE_TIMEOUT:\s+[`"']?{0}[`"']?" -f [regex]::Escape([string]$script:config.openwebui_mcp_initialize_timeout))) {
+        throw "Open WebUI MCP initialize timeout is not aligned."
+    }
+
+    $expectedKbExec = $script:config.openwebui_kb_exec_enabled.ToString().ToLowerInvariant()
+    if ($renderedConfig -notmatch ("ENABLE_KB_EXEC:\s+[`"']?{0}[`"']?" -f [regex]::Escape($expectedKbExec))) {
+        throw "Open WebUI knowledge base exec setting is not aligned."
+    }
+
+    if ($null -eq $script:config.openwebui_profile_image_max_data_uri_size) {
+        if ($renderedConfig -notmatch 'PROFILE_IMAGE_MAX_DATA_URI_SIZE:\s+""') {
+            throw "Open WebUI profile image size cap should be unset."
+        }
+    }
+    elseif ($renderedConfig -notmatch ("PROFILE_IMAGE_MAX_DATA_URI_SIZE:\s+[`"']?{0}[`"']?" -f [regex]::Escape([string]$script:config.openwebui_profile_image_max_data_uri_size))) {
+        throw "Open WebUI profile image size cap is not aligned."
+    }
+
+    "Open WebUI advanced environment settings are aligned."
+}
+
 Invoke-Check -Name "Validate external TTS configuration" -ScriptBlock {
     if (-not $script:config.tts_enabled) {
         return New-SkippedCheckResult -Reason "Local TTS is disabled in config."

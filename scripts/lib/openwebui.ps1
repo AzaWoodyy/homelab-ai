@@ -122,11 +122,11 @@ import re
 
 main_path = Path('/app/backend/open_webui/main.py')
 main_text = main_path.read_text(encoding='utf-8')
-main_patch_marker = "HOMELAB_VOICE_VISION_PATCH_VERSION = '2026-06-06-broadened'"
+main_patch_marker = "HOMELAB_VOICE_VISION_PATCH_VERSION = '2026-06-13-v096'"
 
 main_helper = '''
 
-HOMELAB_VOICE_VISION_PATCH_VERSION = '2026-06-06-broadened'
+HOMELAB_VOICE_VISION_PATCH_VERSION = '2026-06-13-v096'
 
 def merge_attached_image_files_into_messages(form_data: dict) -> dict:
     def collect_from_files(files):
@@ -224,11 +224,11 @@ main_call_new = """    if not request.app.state.MODELS:
 
 chat_path = Path('/app/backend/open_webui/utils/chat.py')
 chat_text = chat_path.read_text(encoding='utf-8')
-chat_patch_marker = "HOMELAB_OLLAMA_NATIVE_IMAGES_PATCH_VERSION = '2026-06-06-ollama-native-images'"
+chat_patch_marker = "HOMELAB_OLLAMA_NATIVE_IMAGES_PATCH_VERSION = '2026-06-13-v096'"
 
 chat_helper = '''
 
-HOMELAB_OLLAMA_NATIVE_IMAGES_PATCH_VERSION = '2026-06-06-ollama-native-images'
+HOMELAB_OLLAMA_NATIVE_IMAGES_PATCH_VERSION = '2026-06-13-v096'
 
 async def apply_homelab_ollama_native_images(openai_form_data: dict, ollama_form_data: dict) -> dict:
     from open_webui.utils.files import get_image_base64_from_url
@@ -587,7 +587,7 @@ main_text = Path('/app/backend/open_webui/main.py').read_text(encoding='utf-8')
 chat_text = Path('/app/backend/open_webui/utils/chat.py').read_text(encoding='utf-8')
 
 native_required = [
-    "HOMELAB_OLLAMA_NATIVE_IMAGES_PATCH_VERSION = '2026-06-06-ollama-native-images'",
+    "HOMELAB_OLLAMA_NATIVE_IMAGES_PATCH_VERSION = '2026-06-13-v096'",
     'async def apply_homelab_ollama_native_images(',
     "openai_form_data = form_data",
     'form_data = await apply_homelab_ollama_native_images(openai_form_data, form_data)',
@@ -595,7 +595,7 @@ native_required = [
 ]
 
 broadened_required = [
-    "HOMELAB_VOICE_VISION_PATCH_VERSION = '2026-06-06-broadened'",
+    "HOMELAB_VOICE_VISION_PATCH_VERSION = '2026-06-13-v096'",
     'def merge_attached_image_files_into_messages(',
     'form_data = merge_attached_image_files_into_messages(form_data)',
     "metadata = form_data.get('metadata')",

@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - The runtime abstraction now supports `wsl-docker-engine` and `wsl-service` backends, with Docker Compose and Ollama commands routed through `wsl.exe` when selected.
 - `config/homelab.json` now includes an explicit `runtime` section defaulting this machine to Ubuntu WSL 2 for Docker and Ollama.
 - `docker/compose.yml` now adds `host.docker.internal:host-gateway` so Open WebUI can still reach Ollama when Docker runs inside Linux.
+- Open WebUI is now pinned to `v0.9.6`, with repo-managed MCP timeout, opt-in KB exec, and optional profile image size cap settings exposed through config and the manager UI.
 
 ## [0.2.0]
 

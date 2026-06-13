@@ -21,7 +21,7 @@ This document gives the short version of what each file is for, so a new person 
 
 `config/homelab.json`
 - Main runtime settings for the local stack.
-- Defines the hostname, the Open WebUI and manager port settings, the pinned Open WebUI image tag, the preferred voice/camera models, local TTS defaults, and local Whisper STT defaults.
+- Defines the hostname, the Open WebUI and manager port settings, the pinned Open WebUI image tag, a few repo-managed advanced Open WebUI settings, the preferred voice/camera models, local TTS defaults, and local Whisper STT defaults.
 
 `config/homelab.local.example.json`
 - Example local-only override file for secrets.

@@ -33,6 +33,11 @@ const summaryFixture = {
   config: {
     editable: {
       openwebui_image_tag: "main",
+      openwebui: {
+        mcp_initialize_timeout: 30,
+        kb_exec_enabled: false,
+        profile_image_max_data_uri_size: null,
+      },
       voice_vision_model: "model-a",
       voice_vision_fallback_model: "model-b",
       tts: { enabled: false, default_voice: "alloy", fallback_voice: "verse" },

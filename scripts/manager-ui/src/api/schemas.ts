@@ -4,6 +4,7 @@ import { listify, nullableString } from "./normalize";
 const nullableStringSchema = z.preprocess(nullableString, z.string().nullable());
 const stringListSchema = z.preprocess((value) => listify<string>(value).map(String), z.array(z.string()));
 const logTailSchema = z.preprocess((value) => listify<string>(value).map(String), z.array(z.string()));
+const nullablePositiveIntegerSchema = z.number().int().positive("Must be greater than 0").nullable();
 
 export const sessionSchema = z.object({
   ok: z.boolean(),
@@ -50,6 +51,11 @@ export const jobsSnapshotSchema = z.object({
 
 export const editableConfigSchema = z.object({
   openwebui_image_tag: z.string().min(1, "Required"),
+  openwebui: z.object({
+    mcp_initialize_timeout: z.number().int().positive("Must be greater than 0"),
+    kb_exec_enabled: z.boolean(),
+    profile_image_max_data_uri_size: nullablePositiveIntegerSchema,
+  }),
   voice_vision_model: z.string().min(1, "Required"),
   voice_vision_fallback_model: z.string().min(1, "Required"),
   tts: z.object({

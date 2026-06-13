@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { saveConfig } from "../api/config";
 import { editableConfigSchema, type EditableConfig, type Summary } from "../api/schemas";
 import { Button } from "../components/Button";
-import { Field, TextInput } from "../components/Field";
+import { Field, NumberInput, TextInput } from "../components/Field";
 import { StatusPill } from "../components/StatusPill";
 
 export function ConfigPage({ summary }: { summary: Summary }) {
@@ -43,6 +43,29 @@ export function ConfigPage({ summary }: { summary: Summary }) {
           <Field label="Open WebUI image tag" error={form.formState.errors.openwebui_image_tag?.message}>
             <TextInput {...form.register("openwebui_image_tag")} />
           </Field>
+
+          <div className="form-section">Open WebUI</div>
+          <Field label="MCP initialize timeout (seconds)" error={form.formState.errors.openwebui?.mcp_initialize_timeout?.message}>
+            <NumberInput min={1} step={1} {...form.register("openwebui.mcp_initialize_timeout", { valueAsNumber: true })} />
+          </Field>
+          <Controller
+            control={form.control}
+            name="openwebui.kb_exec_enabled"
+            render={({ field }) => (
+              <SwitchField label="Knowledge base exec" checked={field.value} onCheckedChange={field.onChange} />
+            )}
+          />
+          <Field label="Profile image max data URI size (bytes)" error={form.formState.errors.openwebui?.profile_image_max_data_uri_size?.message}>
+            <NumberInput
+              min={1}
+              step={1}
+              placeholder="Unset"
+              {...form.register("openwebui.profile_image_max_data_uri_size", {
+                setValueAs: (value) => (value === "" ? null : Number(value)),
+              })}
+            />
+          </Field>
+
           <Field label="Voice vision model" error={form.formState.errors.voice_vision_model?.message}>
             <TextInput {...form.register("voice_vision_model")} />
           </Field>

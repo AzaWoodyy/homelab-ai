@@ -35,10 +35,13 @@ function Get-HomelabConfig {
     $imageTag = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui_image_tag") -DefaultValue "")
 
     if ([string]::IsNullOrWhiteSpace($imageTag)) {
-        $imageTag = "v0.9.5"
+        $imageTag = "v0.9.6"
     }
 
     $imageTag = $imageTag.Trim()
+    $openWebUiMcpInitializeTimeout = 30
+    $openWebUiKbExecEnabled = $false
+    $openWebUiProfileImageMaxDataUriSize = $null
 
     $webUiSecretKey = ""
     $managementAdminSecret = ""
@@ -105,6 +108,10 @@ function Get-HomelabConfig {
     $managementPort = 3081
     $managementTailscaleHttpsPort = 8443
 
+    $openWebUiMcpInitializeTimeout = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui", "mcp_initialize_timeout") -DefaultValue $openWebUiMcpInitializeTimeout)
+    $openWebUiKbExecEnabled = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui", "kb_exec_enabled") -DefaultValue $openWebUiKbExecEnabled)
+    $profileImageMaxDataUriSizeRaw = Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui", "profile_image_max_data_uri_size") -DefaultValue $openWebUiProfileImageMaxDataUriSize
+
     $ttsEnabled = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("tts", "enabled") -DefaultValue $ttsEnabled)
     $ttsPort = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("tts", "port") -DefaultValue $ttsPort)
     $ttsDefaultVoice = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("tts", "default_voice") -DefaultValue $ttsDefaultVoice)
@@ -127,6 +134,21 @@ function Get-HomelabConfig {
 
     if ($managementTailscaleHttpsPort -lt 1 -or $managementTailscaleHttpsPort -gt 65535) {
         throw "management.tailscale_https_port must be between 1 and 65535."
+    }
+
+    if ($openWebUiMcpInitializeTimeout -le 0) {
+        throw "openwebui.mcp_initialize_timeout must be greater than 0."
+    }
+
+    if ($null -eq $profileImageMaxDataUriSizeRaw -or [string]::IsNullOrWhiteSpace([string]$profileImageMaxDataUriSizeRaw)) {
+        $openWebUiProfileImageMaxDataUriSize = $null
+    }
+    else {
+        $openWebUiProfileImageMaxDataUriSize = [int]$profileImageMaxDataUriSizeRaw
+
+        if ($openWebUiProfileImageMaxDataUriSize -le 0) {
+            throw "openwebui.profile_image_max_data_uri_size must be greater than 0 when set."
+        }
     }
 
     $ttsDefaultVoice = $ttsDefaultVoice.Trim()
@@ -153,6 +175,9 @@ function Get-HomelabConfig {
         hostname                 = $hostname
         openwebui_port           = $port
         openwebui_image_tag      = $imageTag
+        openwebui_mcp_initialize_timeout = $openWebUiMcpInitializeTimeout
+        openwebui_kb_exec_enabled = $openWebUiKbExecEnabled
+        openwebui_profile_image_max_data_uri_size = $openWebUiProfileImageMaxDataUriSize
         openwebui_container_name = "open-webui"
         tts_enabled              = $ttsEnabled
         tts_port                 = $ttsPort
@@ -227,6 +252,11 @@ function Get-EditableHomelabConfig {
 
     return [ordered]@{
         openwebui_image_tag        = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui_image_tag") -DefaultValue "")
+        openwebui                  = [ordered]@{
+            mcp_initialize_timeout         = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui", "mcp_initialize_timeout") -DefaultValue 30)
+            kb_exec_enabled                = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui", "kb_exec_enabled") -DefaultValue $false)
+            profile_image_max_data_uri_size = Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui", "profile_image_max_data_uri_size") -DefaultValue $null
+        }
         voice_vision_model         = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("voice_vision_model") -DefaultValue "")
         voice_vision_fallback_model = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("voice_vision_fallback_model") -DefaultValue "")
         tts                        = [ordered]@{
@@ -263,6 +293,10 @@ function Save-EditableHomelabConfig {
         throw "voice_vision_fallback_model is required."
     }
 
+    if ($null -eq $EditableConfig.openwebui) {
+        throw "openwebui config is required."
+    }
+
     if ($null -eq $EditableConfig.tts) {
         throw "tts config is required."
     }
@@ -285,9 +319,30 @@ function Save-EditableHomelabConfig {
         throw "stt.model is required."
     }
 
+    if ([int]$EditableConfig.openwebui.mcp_initialize_timeout -le 0) {
+        throw "openwebui.mcp_initialize_timeout must be greater than 0."
+    }
+
+    $profileImageMaxDataUriSize = Get-HomelabObjectPropertyValue -InputObject $EditableConfig.openwebui -Name "profile_image_max_data_uri_size" -DefaultValue $null
+    if ($null -ne $profileImageMaxDataUriSize -and -not [string]::IsNullOrWhiteSpace([string]$profileImageMaxDataUriSize)) {
+        $profileImageMaxDataUriSize = [int]$profileImageMaxDataUriSize
+
+        if ($profileImageMaxDataUriSize -le 0) {
+            throw "openwebui.profile_image_max_data_uri_size must be greater than 0 when set."
+        }
+    }
+    else {
+        $profileImageMaxDataUriSize = $null
+    }
+
     $rawConfig.openwebui_image_tag = [string]$EditableConfig.openwebui_image_tag
     $rawConfig.voice_vision_model = [string]$EditableConfig.voice_vision_model
     $rawConfig.voice_vision_fallback_model = [string]$EditableConfig.voice_vision_fallback_model
+
+    $openWebUiConfig = Ensure-HomelabNestedObjectProperty -InputObject $rawConfig -Name "openwebui"
+    Set-HomelabObjectPropertyValue -InputObject $openWebUiConfig -Name "mcp_initialize_timeout" -Value ([int]$EditableConfig.openwebui.mcp_initialize_timeout)
+    Set-HomelabObjectPropertyValue -InputObject $openWebUiConfig -Name "kb_exec_enabled" -Value ([bool]$EditableConfig.openwebui.kb_exec_enabled)
+    Set-HomelabObjectPropertyValue -InputObject $openWebUiConfig -Name "profile_image_max_data_uri_size" -Value $profileImageMaxDataUriSize
 
     $ttsConfig = Ensure-HomelabNestedObjectProperty -InputObject $rawConfig -Name "tts"
 

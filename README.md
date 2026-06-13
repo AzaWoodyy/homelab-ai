@@ -229,7 +229,12 @@ Main runtime config lives in `config\homelab.json`:
 {
   "hostname": "homelab-ai",
   "openwebui_port": 3000,
-  "openwebui_image_tag": "v0.9.5",
+  "openwebui_image_tag": "v0.9.6",
+  "openwebui": {
+    "mcp_initialize_timeout": 30,
+    "kb_exec_enabled": false,
+    "profile_image_max_data_uri_size": null
+  },
   "runtime": {
     "container_backend": "windows-docker",
     "wsl_distro": "Ubuntu",
@@ -254,6 +259,12 @@ Main runtime config lives in `config\homelab.json`:
 ```
 
 `hostname` can still be kept for compatibility, but the secure remote URL is discovered from Tailscale at runtime and should be treated as the source of truth for browser access.
+
+The `openwebui` block exposes a small set of repo-managed advanced settings:
+
+- `mcp_initialize_timeout`: increases the MCP handshake timeout for slower local tool servers.
+- `kb_exec_enabled`: turns the built-in knowledge base filesystem tool on or off.
+- `profile_image_max_data_uri_size`: optional cap for inline avatar and icon data URIs. `null` leaves it unset.
 
 Local-only secret overrides live in `config\homelab.local.json`:
 

@@ -1,6 +1,6 @@
 services:
   open-webui:
-    image: ghcr.io/open-webui/open-webui:${OPENWEBUI_IMAGE_TAG:-v0.9.5}
+    image: ghcr.io/open-webui/open-webui:${OPENWEBUI_IMAGE_TAG:-v0.9.6}
 
     container_name: open-webui
 
@@ -21,6 +21,9 @@ services:
       RAG_EMBEDDING_MODEL_AUTO_UPDATE: "false"
       RAG_RERANKING_MODEL_AUTO_UPDATE: "false"
       WHISPER_MODEL_AUTO_UPDATE: "${WHISPER_MODEL_AUTO_UPDATE:-false}"
+      MCP_INITIALIZE_TIMEOUT: "${MCP_INITIALIZE_TIMEOUT:-30}"
+      ENABLE_KB_EXEC: "${ENABLE_KB_EXEC:-false}"
+      PROFILE_IMAGE_MAX_DATA_URI_SIZE: "${PROFILE_IMAGE_MAX_DATA_URI_SIZE:-}"
 
     volumes:
       - open-webui:/app/backend/data

@@ -22,6 +22,10 @@ export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input className="input" type="text" {...props} />;
 }
 
+export function NumberInput(props: InputHTMLAttributes<HTMLInputElement>) {
+  return <input className="input" type="number" {...props} />;
+}
+
 export function SecretInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input className="input" type="password" {...props} />;
 }
