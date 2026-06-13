@@ -3,19 +3,24 @@
 Initialize-HomelabScript -ScriptName "start"
 
 $config = Get-HomelabConfig
-$ollamaPath = Get-OllamaPath
+
+Write-Log "Ensuring container runtime is available..." "STEP"
+Start-DockerBackend -Config $config
 
 Write-Log "Starting Ollama..." "STEP"
-Start-Ollama -Config $config -OllamaPath $ollamaPath
-Wait-ForOllamaReady -OllamaPath $ollamaPath
+Start-Ollama -Config $config
+Wait-ForOllamaReady -Config $config
 Write-Log "Ollama is ready." "OK"
 
 Write-Log "Validating Docker Compose configuration..." "STEP"
 Test-ComposeConfiguration -Config $config
 Write-Log "Docker Compose configuration is valid." "OK"
 
+Stop-LegacyWindowsDockerContainers -Config $config
+
 Write-Log "Starting Open WebUI..." "STEP"
 [void](Invoke-DockerCompose -Config $config -Arguments @("up", "-d") -RequireDaemon)
+Repair-WslComposeContainersIfNeeded -Config $config
 
 if ($config.tts_enabled) {
     Write-Log "Waiting for local TTS service..." "STEP"

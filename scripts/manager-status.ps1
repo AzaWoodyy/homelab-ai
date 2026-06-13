@@ -13,7 +13,12 @@ $localUrl = Get-HomelabManagerLocalUrl -Config $config
 $localStatus = Test-HttpEndpoint -Url $localUrl -TimeoutSeconds 5
 
 Write-Log "Manager local URL: $localUrl" "INFO"
-Write-Log "Manager scheduled task registered: $(Test-HomelabManagerTaskRegistered)" "INFO"
+$taskQuery = Get-HomelabManagerTaskQuery
+Write-Log "Manager user-logon task registered: $($taskQuery.Exists -and $taskQuery.IsExpectedRegistration)" "INFO"
+
+if ($taskQuery.Exists -and -not $taskQuery.IsExpectedRegistration) {
+    Write-Log "Manager task registration is present but not in the expected user-logon form (user=$($taskQuery.UserId), expected=$($taskQuery.ExpectedUserId))." "WARN"
+}
 
 if ($null -ne $lockInfo) {
     Write-Log "Manager PID: $($lockInfo.pid)" "INFO"

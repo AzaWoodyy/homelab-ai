@@ -49,6 +49,9 @@ function Get-HomelabConfig {
     $webUiSecretKey = ""
     $managementAdminSecret = ""
     $ollamaModelsPath = ""
+    $runtimeContainerBackend = "windows-docker"
+    $runtimeWslDistro = "Ubuntu"
+    $runtimeOllamaBackend = "windows-process"
 
     if ($localConfig -and ($localConfig.PSObject.Properties.Name -contains "webui_secret_key") -and $null -ne $localConfig.webui_secret_key) {
         $webUiSecretKey = [string]$localConfig.webui_secret_key
@@ -61,6 +64,34 @@ function Get-HomelabConfig {
     if (($rawConfig.PSObject.Properties.Name -contains "ollama") -and $null -ne $rawConfig.ollama) {
         if (($rawConfig.ollama.PSObject.Properties.Name -contains "models_path") -and $null -ne $rawConfig.ollama.models_path) {
             $ollamaModelsPath = [string]$rawConfig.ollama.models_path
+        }
+    }
+
+    if (($rawConfig.PSObject.Properties.Name -contains "runtime") -and $null -ne $rawConfig.runtime) {
+        if (($rawConfig.runtime.PSObject.Properties.Name -contains "container_backend") -and $null -ne $rawConfig.runtime.container_backend) {
+            $runtimeContainerBackend = [string]$rawConfig.runtime.container_backend
+        }
+
+        if (($rawConfig.runtime.PSObject.Properties.Name -contains "wsl_distro") -and $null -ne $rawConfig.runtime.wsl_distro) {
+            $runtimeWslDistro = [string]$rawConfig.runtime.wsl_distro
+        }
+
+        if (($rawConfig.runtime.PSObject.Properties.Name -contains "ollama_backend") -and $null -ne $rawConfig.runtime.ollama_backend) {
+            $runtimeOllamaBackend = [string]$rawConfig.runtime.ollama_backend
+        }
+    }
+
+    if ($localConfig -and ($localConfig.PSObject.Properties.Name -contains "runtime") -and $null -ne $localConfig.runtime) {
+        if (($localConfig.runtime.PSObject.Properties.Name -contains "container_backend") -and $null -ne $localConfig.runtime.container_backend) {
+            $runtimeContainerBackend = [string]$localConfig.runtime.container_backend
+        }
+
+        if (($localConfig.runtime.PSObject.Properties.Name -contains "wsl_distro") -and $null -ne $localConfig.runtime.wsl_distro) {
+            $runtimeWslDistro = [string]$localConfig.runtime.wsl_distro
+        }
+
+        if (($localConfig.runtime.PSObject.Properties.Name -contains "ollama_backend") -and $null -ne $localConfig.runtime.ollama_backend) {
+            $runtimeOllamaBackend = [string]$localConfig.runtime.ollama_backend
         }
     }
 
@@ -85,9 +116,24 @@ function Get-HomelabConfig {
     $webUiSecretKey = $webUiSecretKey.Trim()
     $managementAdminSecret = $managementAdminSecret.Trim()
     $ollamaModelsPath = $ollamaModelsPath.Trim()
+    $runtimeContainerBackend = $runtimeContainerBackend.Trim().ToLowerInvariant()
+    $runtimeWslDistro = $runtimeWslDistro.Trim()
+    $runtimeOllamaBackend = $runtimeOllamaBackend.Trim().ToLowerInvariant()
 
     if (-not [string]::IsNullOrWhiteSpace($ollamaModelsPath)) {
         $ollamaModelsPath = [System.IO.Path]::GetFullPath($ollamaModelsPath)
+    }
+
+    if ($runtimeContainerBackend -notin @("windows-docker", "wsl-docker-engine")) {
+        throw "runtime.container_backend must be 'windows-docker' or 'wsl-docker-engine'."
+    }
+
+    if ($runtimeOllamaBackend -notin @("windows-process", "windows-service", "wsl-service")) {
+        throw "runtime.ollama_backend must be 'windows-process', 'windows-service', or 'wsl-service'."
+    }
+
+    if (($runtimeContainerBackend -eq "wsl-docker-engine" -or $runtimeOllamaBackend -eq "wsl-service") -and [string]::IsNullOrWhiteSpace($runtimeWslDistro)) {
+        throw "runtime.wsl_distro is required when a WSL backend is selected."
     }
 
     $ttsEnabled = $true
@@ -204,10 +250,14 @@ function Get-HomelabConfig {
         ollama_host              = "host.docker.internal"
         ollama_port              = 11434
         ollama_models_path       = $ollamaModelsPath
+        ollama_models_runtime_path = if (-not [string]::IsNullOrWhiteSpace($ollamaModelsPath) -and $runtimeOllamaBackend -eq "wsl-service") { Convert-WindowsPathToWslPath -Path $ollamaModelsPath } else { $ollamaModelsPath }
+        runtime_container_backend = $runtimeContainerBackend
+        runtime_wsl_distro      = $runtimeWslDistro
+        runtime_ollama_backend  = $runtimeOllamaBackend
         webui_secret_key         = $webUiSecretKey
         management_port          = $managementPort
         management_tailscale_https_port = $managementTailscaleHttpsPort
-        management_startup       = "scheduled-task"
+        management_startup       = "scheduled-task-user-logon"
         management_admin_secret  = $managementAdminSecret
     }
 }
@@ -241,6 +291,11 @@ function Set-HomelabProcessEnvironment {
     )
 
     if (-not [string]::IsNullOrWhiteSpace([string]$Config.ollama_models_path)) {
+        if (Test-HomelabOllamaBackendWsl -Config $Config) {
+            Remove-Item Env:OLLAMA_MODELS -ErrorAction SilentlyContinue
+            return
+        }
+
         $env:OLLAMA_MODELS = [string]$Config.ollama_models_path
         return
     }

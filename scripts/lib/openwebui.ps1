@@ -54,7 +54,14 @@ cur = conn.cursor()
 cur.execute('select id, data from config order by id desc limit 1')
 row = cur.fetchone()
 if row is None:
-    raise RuntimeError('No Open WebUI config row found')
+    cur.execute("insert into config (data, version) values (?, ?)", ('{}', 0))
+    row_id = cur.lastrowid
+    conn.commit()
+    cur.execute('select id, data from config where id = ?', (row_id,))
+    row = cur.fetchone()
+
+if row is None:
+    raise RuntimeError('Open WebUI config row could not be initialized')
 
 config = json.loads(row[1])
 audio = config.setdefault('audio', {})
@@ -751,6 +758,24 @@ print('HOMELAB_JWT=' + token)
     return $match.Groups[1].Value
 }
 
+function Test-OpenWebUiHasLocalUser {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    $pythonCode = @"
+import sqlite3
+
+conn = sqlite3.connect('/app/backend/data/webui.db')
+cur = conn.cursor()
+row = cur.execute('select 1 from user limit 1').fetchone()
+print('yes' if row is not None else 'no')
+"@
+
+    return ((Invoke-OpenWebUiPython -Config $Config -PythonCode $pythonCode).Trim() -eq "yes")
+}
+
 function Clear-OpenWebUiSpeechCache {
     param(
         [Parameter(Mandatory = $true)]
@@ -789,7 +814,13 @@ cur = conn.cursor()
 cur.execute('select data from config order by id desc limit 1')
 row = cur.fetchone()
 if row is None:
-    raise RuntimeError('No Open WebUI config row found')
+    cur.execute("insert into config (data, version) values (?, ?)", ('{}', 0))
+    conn.commit()
+    cur.execute('select data from config order by id desc limit 1')
+    row = cur.fetchone()
+
+if row is None:
+    raise RuntimeError('Open WebUI config row could not be initialized')
 print(row[0])
 "@
 

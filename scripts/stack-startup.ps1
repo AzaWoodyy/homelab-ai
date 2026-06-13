@@ -8,30 +8,24 @@ param(
 
 Initialize-HomelabScript -ScriptName "stack-startup"
 
-function Start-DockerDesktopIfNeeded {
-    if (Test-DockerDaemonReady) {
+function Start-StackRuntimeIfNeeded {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Config
+    )
+
+    if (Test-DockerDaemonReady -Config $Config) {
         return
     }
 
-    $dockerPath = Get-DockerPath
-    Write-Log "Docker daemon is not ready. Asking Docker Desktop to start..." "WARN"
-    $result = Invoke-NativeCommand -FilePath $dockerPath -Arguments @("desktop", "start", "--detach", "--timeout", [string]$DockerStartTimeoutSeconds)
-
-    if ($result.ExitCode -ne 0) {
-        $message = ($result.StdErr + [Environment]::NewLine + $result.StdOut).Trim()
-
-        if (-not [string]::IsNullOrWhiteSpace($message)) {
-            throw $message
-        }
-
-        throw "docker desktop start failed with exit code $($result.ExitCode)."
-    }
+    Start-DockerBackend -Config $Config -DockerDesktopStartTimeoutSeconds $DockerStartTimeoutSeconds
 }
 
 for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
     try {
+        $config = Get-HomelabConfig
         Write-Log "Boot stack startup attempt $attempt of $MaxAttempts..." "STEP"
-        Start-DockerDesktopIfNeeded
+        Start-StackRuntimeIfNeeded -Config $config
         & (Join-Path $PSScriptRoot "start.ps1")
         Write-Log "Homelab stack boot startup completed." "OK"
         exit 0

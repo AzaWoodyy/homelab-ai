@@ -5,10 +5,9 @@ param()
 Initialize-HomelabScript -ScriptName "status"
 
 $config = Get-HomelabConfig
-$ollamaPath = Get-OllamaPath
 
-$ollamaState = if (Test-OllamaReady -OllamaPath $ollamaPath) { "ready" } else { "not responding" }
-$dockerDaemonState = if (Test-DockerDaemonReady) { "ready" } else { "not running" }
+$ollamaState = if (Test-OllamaReady -Config $config) { "ready" } else { "not responding" }
+$dockerDaemonState = if (Test-DockerDaemonReady -Config $config) { "ready" } else { "not running" }
 $openWebUiHealth = if ($dockerDaemonState -eq "ready") {
     Get-OpenWebUiHealth -Config $config
 }
@@ -58,7 +57,7 @@ $currentManagerJob = Get-HomelabManagerCurrentJob
 $latestManagerJob = Get-HomelabManagerLastJob
 
 if ($ollamaState -eq "ready") {
-    $installedModels = Get-InstalledOllamaModels -OllamaPath $ollamaPath
+    $installedModels = Get-InstalledOllamaModels -Config $config
 }
 
 try {
@@ -73,9 +72,18 @@ catch {
 Write-Log "Hostname: $($config.hostname)" "INFO"
 Write-Log "Open WebUI port: $($config.openwebui_port)" "INFO"
 Write-Log "Manager port: $($config.management_port)" "INFO"
+Write-Log "Container backend: $($config.runtime_container_backend)" "INFO"
+Write-Log "Ollama backend: $($config.runtime_ollama_backend)" "INFO"
+if ((Test-HomelabContainerBackendWsl -Config $config) -or (Test-HomelabOllamaBackendWsl -Config $config)) {
+    Write-Log "WSL distro: $($config.runtime_wsl_distro)" "INFO"
+}
 Write-Log "Ollama: $ollamaState" "INFO"
 Write-Log "Docker daemon: $dockerDaemonState" "INFO"
-Write-Log "Manager scheduled task: $(Test-HomelabManagerTaskRegistered)" "INFO"
+$managerTaskQuery = Get-HomelabManagerTaskQuery
+Write-Log "Manager user-logon task: $($managerTaskQuery.Exists -and $managerTaskQuery.IsExpectedRegistration)" "INFO"
+if ($managerTaskQuery.Exists -and -not $managerTaskQuery.IsExpectedRegistration) {
+    Write-Log "Manager task registration is present but not in the expected user-logon form (user=$($managerTaskQuery.UserId), expected=$($managerTaskQuery.ExpectedUserId))." "WARN"
+}
 Write-Log "Open WebUI container: $openWebUiHealth" "INFO"
 Write-Log "Open WebUI voice-camera patch: $openWebUiRuntimePatchState" "INFO"
 Write-Log "Open WebUI STT model: $($config.stt_model)" "INFO"

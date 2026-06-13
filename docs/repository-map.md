@@ -99,14 +99,15 @@ This document gives the short version of what each file is for, so a new person 
 - Keep manager control independent from the main stack lifecycle.
 
 `scripts/manager-install.ps1`, `scripts/manager-uninstall.ps1`
-- Scheduled-task helpers for making the manager survive reboots.
+- User-logon scheduled-task helpers for making the manager come back automatically after reboot once the Windows user signs in.
 
 `scripts/manager-status.ps1`, `scripts/manager-test.ps1`
 - Quick diagnostics for the manager control surface itself.
 
 `scripts/manager-ui/*`
-- Static dashboard assets served by the manager service.
-- Contains the login page, control panel, editing forms, and live job UI.
+- React and TypeScript source for the manager dashboard.
+- `npm.cmd run build` writes the static SPA to `scripts/manager-ui/dist`, which is served by the manager service.
+- Contains the login page, operator console, editing forms, and live job UI.
 
 ## wake-relay/
 

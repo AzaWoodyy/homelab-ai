@@ -155,7 +155,7 @@ function Get-OllamaModelListDiff {
 function Remove-OllamaModels {
     param(
         [Parameter(Mandatory = $true)]
-        [string]$OllamaPath,
+        [pscustomobject]$Config,
 
         [string[]]$Models = @()
     )
@@ -170,11 +170,11 @@ function Remove-OllamaModels {
         }
     }
 
-    if (-not (Test-OllamaReady -OllamaPath $OllamaPath)) {
+    if (-not (Test-OllamaReady -Config $Config)) {
         throw "Ollama is not responding, so removed models could not be uninstalled."
     }
 
-    $installedModels = @(Get-InstalledOllamaModels -OllamaPath $OllamaPath)
+    $installedModels = @(Get-InstalledOllamaModels -Config $Config)
     $installedNormalized = @{}
 
     foreach ($installedModel in $installedModels) {
@@ -188,6 +188,8 @@ function Remove-OllamaModels {
     $removed = @()
     $skipped = @()
 
+    $ollamaCommand = Get-OllamaCommandSpec -Config $Config
+
     foreach ($model in $requested) {
         $normalizedModel = Normalize-OllamaModelName -ModelName $model
 
@@ -196,7 +198,7 @@ function Remove-OllamaModels {
             continue
         }
 
-        $removeResult = Invoke-NativeCommand -FilePath $OllamaPath -Arguments @("rm", $normalizedModel)
+        $removeResult = Invoke-HomelabCommandSpec -CommandSpec $ollamaCommand -Arguments @("rm", $normalizedModel)
 
         if ($removeResult.ExitCode -ne 0) {
             $message = ($removeResult.StdErr + [Environment]::NewLine + $removeResult.StdOut).Trim()
