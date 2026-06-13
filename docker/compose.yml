@@ -25,6 +25,9 @@ services:
     volumes:
       - open-webui:/app/backend/data
 
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
     healthcheck:
       test: ["CMD-SHELL", "curl --silent --fail http://localhost:8080/ > /dev/null || exit 1"]
       interval: 30s

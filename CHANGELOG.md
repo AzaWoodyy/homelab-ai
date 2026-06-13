@@ -10,11 +10,15 @@ All notable changes to this project will be documented in this file.
 - Manager lifecycle scripts for start, stop, restart, install, uninstall, status, and manager-specific validation.
 - Manager config support in `config/homelab.json` plus local-only `management_admin_secret` support.
 - Local manager runtime state under `state/manager/` for sessions, pending apply metadata, job history, and job logs.
+- A new `scripts/wsl-bootstrap.ps1` flow to install and validate the Ubuntu WSL runtime, Docker Engine, Docker Compose plugin, and Ollama service.
 
 ### Changed
 
 - `scripts/status.ps1` now reports manager reachability, remote URLs, manager Tailscale Serve status, and pending apply actions.
 - `README.md` and `docs/repository-map.md` now document the remote manager workflow and new scripts.
+- The runtime abstraction now supports `wsl-docker-engine` and `wsl-service` backends, with Docker Compose and Ollama commands routed through `wsl.exe` when selected.
+- `config/homelab.json` now includes an explicit `runtime` section defaulting this machine to Ubuntu WSL 2 for Docker and Ollama.
+- `docker/compose.yml` now adds `host.docker.internal:host-gateway` so Open WebUI can still reach Ollama when Docker runs inside Linux.
 
 ## [0.2.0]
 

@@ -10,12 +10,10 @@ $config = Get-HomelabConfig
 $models = Get-ConfiguredModels
 
 Write-Log "Checking Ollama..." "STEP"
-$ollamaPath = Get-OllamaPath
-Write-Log (Get-CommandVersion -CommandPath $ollamaPath) "OK"
+Write-Log (Get-OllamaVersion -Config $config) "OK"
 
 Write-Log "Checking Docker..." "STEP"
-$dockerPath = Get-DockerPath
-Write-Log (Get-CommandVersion -CommandPath $dockerPath) "OK"
+Write-Log (Get-HomelabCommandSpecVersion -CommandSpec (Get-DockerCommandSpec -Config $config)) "OK"
 
 Write-Log "Checking Tailscale..." "STEP"
 $tailscalePath = Get-TailscalePath
@@ -29,6 +27,12 @@ Write-Log "Validating Docker Compose configuration..." "STEP"
 Test-ComposeConfiguration -Config $config
 Write-Log "Docker Compose configuration is valid." "OK"
 
+Write-Log "Ensuring container runtime is available..." "STEP"
+Start-DockerBackend -Config $config
+
+Stop-LegacyWindowsDockerContainers -Config $config
+Repair-WslComposeContainersIfNeeded -Config $config
+
 if ($config.tts_enabled) {
     Write-Log "Ensuring local TTS image is available..." "STEP"
     [void](Invoke-DockerCompose -Config $config -Arguments @("pull", "openedai-speech") -RequireDaemon)
@@ -36,12 +40,12 @@ if ($config.tts_enabled) {
 }
 
 Write-Log "Ensuring Ollama is running..." "STEP"
-Start-Ollama -Config $config -OllamaPath $ollamaPath
-Wait-ForOllamaReady -OllamaPath $ollamaPath
+Start-Ollama -Config $config
+Wait-ForOllamaReady -Config $config
 Write-Log "Ollama is ready." "OK"
 
 Write-Log "Getting installed models..." "STEP"
-$installedModels = Get-InstalledOllamaModels -OllamaPath $ollamaPath
+$installedModels = Get-InstalledOllamaModels -Config $config
 
 foreach ($model in $models) {
     $isInstalled = $model -in $installedModels
@@ -58,7 +62,7 @@ foreach ($model in $models) {
         Write-Log "Pulling $model" "STEP"
     }
 
-    $pullResult = Invoke-NativeCommand -FilePath $ollamaPath -Arguments @("pull", $model)
+    $pullResult = Invoke-HomelabCommandSpec -CommandSpec (Get-OllamaCommandSpec -Config $config) -Arguments @("pull", $model)
 
     if ($pullResult.ExitCode -ne 0) {
         $message = ($pullResult.StdErr + [Environment]::NewLine + $pullResult.StdOut).Trim()
@@ -68,7 +72,7 @@ foreach ($model in $models) {
     Write-Log "$model is ready." "OK"
 }
 
-$installedModels = Get-InstalledOllamaModels -OllamaPath $ollamaPath
+$installedModels = Get-InstalledOllamaModels -Config $config
 Assert-ConfiguredModelsInstalled -ConfiguredModels $models -InstalledModels $installedModels
 
 if ($config.tts_enabled) {

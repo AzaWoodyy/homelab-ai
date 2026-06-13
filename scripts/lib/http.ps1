@@ -186,6 +186,10 @@ function Assert-OpenWebUiCanProxyTts {
         return
     }
 
+    if (-not (Test-OpenWebUiHasLocalUser -Config $Config)) {
+        return
+    }
+
     $url = "http://127.0.0.1:$($Config.openwebui_port)/api/v1/audio/speech"
     $inputText = "Bonjour depuis Open WebUI $([guid]::NewGuid())."
     $result = Test-OpenWebUiTtsSpeechSynthesis `

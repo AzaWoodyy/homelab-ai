@@ -55,8 +55,6 @@ function Invoke-Check {
 
 $config = $null
 $models = $null
-$ollamaPath = $null
-$dockerPath = $null
 $dockerDaemonReady = $false
 $tailscaleNodeInfo = $null
 $ttsUrl = $null
@@ -72,13 +70,11 @@ Invoke-Check -Name "Load model config" -ScriptBlock {
 }
 
 Invoke-Check -Name "Validate Ollama CLI" -ScriptBlock {
-    $script:ollamaPath = Get-OllamaPath
-    Get-CommandVersion -CommandPath $script:ollamaPath
+    Get-OllamaVersion -Config $script:config
 }
 
 Invoke-Check -Name "Validate Docker CLI" -ScriptBlock {
-    $script:dockerPath = Get-DockerPath
-    Get-CommandVersion -CommandPath $script:dockerPath
+    Get-HomelabCommandSpecVersion -CommandSpec (Get-DockerCommandSpec -Config $script:config)
 }
 
 Invoke-Check -Name "Validate Tailscale CLI" -ScriptBlock {
@@ -92,7 +88,7 @@ Invoke-Check -Name "Validate Tailscale HTTPS prerequisites" -ScriptBlock {
 }
 
 Invoke-Check -Name "Validate Docker daemon" -ScriptBlock {
-    Assert-DockerDaemonReady
+    Assert-DockerDaemonReady -Config $script:config
     $script:dockerDaemonReady = $true
     "Docker daemon is responding."
 }
@@ -249,7 +245,7 @@ Invoke-Check -Name "Validate Open WebUI Ollama native image replay" -ScriptBlock
 }
 
 Invoke-Check -Name "Validate Ollama runtime" -ScriptBlock {
-    if (-not (Test-OllamaReady -OllamaPath $script:ollamaPath)) {
+    if (-not (Test-OllamaReady -Config $script:config)) {
         throw "Ollama is not responding. Start Ollama first."
     }
 
@@ -257,7 +253,7 @@ Invoke-Check -Name "Validate Ollama runtime" -ScriptBlock {
 }
 
 Invoke-Check -Name "Validate installed models" -ScriptBlock {
-    $installedModels = Get-InstalledOllamaModels -OllamaPath $script:ollamaPath
+    $installedModels = Get-InstalledOllamaModels -Config $script:config
     Assert-ConfiguredModelsInstalled -ConfiguredModels $script:models -InstalledModels $installedModels
     "All configured models are installed."
 }
@@ -270,7 +266,7 @@ Invoke-Check -Name "Validate Open WebUI container" -ScriptBlock {
     $health = Get-OpenWebUiHealth -Config $script:config
 
     if ($health -eq "daemon-unavailable") {
-        throw "Docker daemon is not running. Start Docker Desktop (or the Docker engine) first."
+        throw (Get-DockerDaemonNotReadyMessage -Config $script:config)
     }
 
     if ($health -eq "missing") {
@@ -300,7 +296,7 @@ Invoke-Check -Name "Validate local TTS container" -ScriptBlock {
     $health = Get-TtsHealth -Config $script:config
 
     if ($health -eq "daemon-unavailable") {
-        throw "Docker daemon is not running. Start Docker Desktop (or the Docker engine) first."
+        throw (Get-DockerDaemonNotReadyMessage -Config $script:config)
     }
 
     if ($health -eq "missing") {
@@ -421,6 +417,10 @@ Invoke-Check -Name "Validate Open WebUI local TTS proxy synthesis" -ScriptBlock 
 
     if ($health -ne "healthy" -and $health -ne "running") {
         return New-SkippedCheckResult -Reason "Open WebUI is not running."
+    }
+
+    if (-not (Test-OpenWebUiHasLocalUser -Config $script:config)) {
+        return New-SkippedCheckResult -Reason "Open WebUI does not have a local user yet."
     }
 
     $url = "http://127.0.0.1:$($script:config.openwebui_port)/api/v1/audio/speech"

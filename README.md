@@ -4,12 +4,12 @@ Homelab AI is a personal self-hosted AI workspace for coding, research, and smal
 
 The current stack is intentionally simple:
 
-- Ollama runs local models on the Windows host.
-- Open WebUI runs in Docker and connects to Ollama.
+- Ubuntu runs inside WSL 2 and hosts Docker Engine plus Ollama.
+- Open WebUI runs in Docker and connects to Ollama through `host.docker.internal`.
 - OpenedAI Speech runs in Docker for local text-to-speech.
 - Tailscale is the private remote access and HTTPS layer.
 - A PowerShell manager service provides a remote control dashboard.
-- PowerShell scripts keep setup, start, stop, and validation reproducible.
+- PowerShell scripts remain the operator surface on Windows and call Docker/Ollama through `wsl.exe`.
 
 ## What This Repo Tries To Do
 
@@ -31,7 +31,8 @@ The speech path is:
 
 A few practical notes:
 
-- Ollama runs on the host, not in Docker.
+- Ollama runs on Windows by default and can reuse the configured local models path.
+- Docker Desktop is the default container runtime path for this repo.
 - Open WebUI runs in Docker on port `3000` by default, but that port is only bound to `127.0.0.1`.
 - OpenedAI Speech runs in Docker on port `8000` by default, and that port is also only bound to `127.0.0.1`.
 - The manager service listens on `127.0.0.1:3081` by default.
@@ -57,9 +58,29 @@ Before using the remote URL, make sure:
 
 When Tailscale HTTPS certificates are enabled, the machine name and tailnet DNS name become visible in certificate transparency logs. That is expected behavior for public CA-issued certificates.
 
+## Wake-on-LAN Companion
+
+Wake-on-LAN is now treated as a companion workflow rather than part of this repo's supported runtime surface.
+
+If you want the gaming PC to wake reliably before you connect to it:
+
+- Complete the target PC and network prerequisites in [Wake-on-LAN Setup Guide](./docs/wake-on-lan.md).
+- Run the dedicated relay service on a separate always-on LAN node.
+- Use the standalone companion project in [`wake-relay/`](./wake-relay/README.md) as the starting point for that always-on machine repo.
+
+The remote wake path is:
+
+`Phone or laptop -> Tailscale -> Wake Relay -> Magic packet -> Gaming PC`
+
 ## Quick Start
 
 Initial setup:
+
+```powershell
+.\scripts\wsl-bootstrap.ps1
+```
+
+Repo setup:
 
 ```powershell
 .\scripts\setup.ps1
@@ -98,16 +119,17 @@ Stop the stack:
 ## Script Guide
 
 `.\scripts\setup.ps1`
-- Validates Docker and Ollama.
+- Validates Docker and Ollama through the configured backend.
 - Reads configured models from `config\models.json`.
 - Pulls only missing models.
+- Reuses `config\homelab.local.json` `ollama.models_path` when you want Ollama model blobs to live outside the default WSL root filesystem.
 - Pulls the local TTS image and warms the configured Piper voices once.
 
 `.\scripts\setup.ps1 -RefreshModels`
 - Re-pulls configured models even if they are already installed.
 
 `.\scripts\start.ps1`
-- Starts Ollama.
+- Starts the configured Docker backend and Ollama backend.
 - Starts Open WebUI and the local TTS service with Docker Compose.
 - Waits until both local HTTP services are reachable.
 - Configures Tailscale Serve so the remote URL is HTTPS on the tailnet.
@@ -120,6 +142,26 @@ Stop the stack:
 `.\scripts\test.ps1`
 - Verifies config, models, Docker Compose, Open WebUI health, local TTS health, direct TTS synthesis, Open WebUI TTS proxy synthesis, local HTTP reachability, Tailscale Serve config, and remote HTTPS reachability.
 
+`.\scripts\wsl-bootstrap.ps1`
+- Installs or validates the configured WSL distro.
+- Enables systemd in WSL.
+- Installs Docker Engine, Docker Compose plugin, and Ollama in WSL.
+- Configures the Ollama systemd service to reuse the configured models path when `ollama.models_path` is set.
+- Verifies Docker, Ollama, and optional NVIDIA CUDA visibility in WSL.
+
+If the Docker step still fails because the Ubuntu codename cannot be detected, use this recovery path and rerun bootstrap:
+
+```powershell
+wsl -d <your-distro> -- sh -lc "grep -RhsE '^(deb|Suites:)' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null"
+```
+
+Look for the active Ubuntu suite such as `resolute`, `resolute-updates`, `resolute-backports`, or `resolute-security`, and use the base codename without the suffix.
+
+```powershell
+wsl -d <your-distro> -- sudo rm -f /etc/apt/sources.list.d/docker.list
+.\scripts\wsl-bootstrap.ps1
+```
+
 `.\scripts\status.ps1`
 - Shows the current stack state in a quick human-readable form.
 
@@ -127,7 +169,7 @@ Stop the stack:
 - Convenience wrapper for `setup.ps1 -RefreshModels`.
 
 `.\scripts\manager-install.ps1 -StartNow`
-- Registers the manager as a Windows Scheduled Task and starts it immediately.
+- Registers the manager as a Windows user-logon Scheduled Task and starts it immediately.
 
 `.\scripts\manager-start.ps1`
 - Starts the host-native manager service on the local machine.
@@ -144,6 +186,29 @@ Stop the stack:
 
 `.\scripts\manager-test.ps1`
 - Verifies the manager landing page, login flow, auth guard, and authenticated summary API.
+- Also checks the React SPA fallback, hardened session cookie attributes, session endpoint, and CSRF protection.
+
+Manager UI development:
+
+```powershell
+cd .\scripts\manager-ui
+npm.cmd install
+npm.cmd run dev
+npm.cmd run build
+```
+
+The manager service serves the production build from `scripts\manager-ui\dist`.
+
+`.\scripts\sleep.ps1`
+- Stops the homelab stack first.
+- Queues a short delayed Windows sleep transition so the manager job can finish cleanly before the host sleeps.
+
+`.\scripts\shutdown.ps1`
+- Stops the homelab stack first.
+- Queues a short delayed Windows shutdown so the manager job can finish cleanly before the host powers off.
+
+The manager UI exposes the same sleep and shutdown actions.
+Wake stays outside this repo and remains the responsibility of the separate Wake Relay companion app.
 
 ## Config
 
@@ -154,6 +219,11 @@ Main runtime config lives in `config\homelab.json`:
   "hostname": "homelab-ai",
   "openwebui_port": 3000,
   "openwebui_image_tag": "v0.9.5",
+  "runtime": {
+    "container_backend": "windows-docker",
+    "wsl_distro": "Ubuntu",
+    "ollama_backend": "windows-process"
+  },
   "management": {
     "port": 3081,
     "tailscale_https_port": 8443
@@ -179,11 +249,16 @@ Local-only secret overrides live in `config\homelab.local.json`:
 ```json
 {
   "webui_secret_key": "replace-with-a-long-random-secret",
-  "management_admin_secret": "replace-with-a-long-random-admin-secret"
+  "management_admin_secret": "replace-with-a-long-random-admin-secret",
+  "ollama": {
+    "models_path": "D:\\dev\\ollama"
+  }
 }
 ```
 
 `config\homelab.local.json` is ignored by git. You can copy `config\homelab.local.example.json` as a starting point, or set `WEBUI_SECRET_KEY` and `MANAGEMENT_ADMIN_SECRET` in your shell environment instead.
+
+If `ollama.models_path` is set and the Ollama backend is `wsl-service`, `.\scripts\wsl-bootstrap.ps1` configures the WSL `ollama` service to use the translated Linux path, such as `/mnt/d/dev/ollama`. That lets the repo keep model blobs on `D:\dev\ollama` while the runtime stays inside WSL.
 
 Model config lives in `config\models.json`:
 
@@ -221,3 +296,5 @@ The manager also writes runtime state, pending apply metadata, sessions, and job
 
 - [Changelog](./CHANGELOG.md)
 - [Repository Map](./docs/repository-map.md)
+- [Wake-on-LAN Setup Guide](./docs/wake-on-lan.md)
+- [Wake Relay Companion Project](./wake-relay/README.md)

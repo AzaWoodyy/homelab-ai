@@ -9,9 +9,9 @@ Initialize-HomelabScript -ScriptName "manager-install"
 $config = Get-HomelabConfig
 Assert-ManagementAdminSecretConfigured -Config $config
 
-Write-Log "Registering Homelab manager scheduled task..." "STEP"
+Write-Log "Registering Homelab manager user-logon scheduled task..." "STEP"
 Register-HomelabManagerScheduledTask
-Write-Log "Homelab manager scheduled task registered." "OK"
+Write-Log "Homelab manager user-logon scheduled task registered." "OK"
 
 if ($StartNow) {
     Write-Log "Starting Homelab manager now..." "STEP"
