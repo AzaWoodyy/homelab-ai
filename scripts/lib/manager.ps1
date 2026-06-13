@@ -88,144 +88,11 @@ function Get-ManagerRelativePath {
         [string]$Path
     )
 
-    $rootPath = [System.IO.Path]::GetFullPath($script:HomelabRoot).TrimEnd('\')
-    $fullPath = [System.IO.Path]::GetFullPath($Path)
-
-    if ($fullPath.StartsWith($rootPath, [System.StringComparison]::OrdinalIgnoreCase)) {
-        return $fullPath.Substring($rootPath.Length).TrimStart('\')
-    }
-
-    return $fullPath
+    return Get-HomelabRelativePath -RootPath $script:HomelabRoot -Path $Path
 }
 
 function Get-ManagerTimestamp {
     return (Get-Date).ToString("o")
-}
-
-function Get-HomelabObjectPropertyValue {
-    param(
-        [object]$InputObject,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Name,
-
-        [object]$DefaultValue = $null
-    )
-
-    if ($null -eq $InputObject) {
-        return $DefaultValue
-    }
-
-    if ($InputObject -is [System.Collections.IDictionary] -and $InputObject.Contains($Name)) {
-        return $InputObject[$Name]
-    }
-
-    $property = $InputObject.PSObject.Properties[$Name]
-
-    if ($null -eq $property) {
-        return $DefaultValue
-    }
-
-    return $property.Value
-}
-
-function Set-HomelabObjectPropertyValue {
-    param(
-        [Parameter(Mandatory = $true)]
-        [object]$InputObject,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Name,
-
-        [object]$Value
-    )
-
-    if ($InputObject -is [System.Collections.IDictionary]) {
-        $InputObject[$Name] = $Value
-        return
-    }
-
-    $property = $InputObject.PSObject.Properties[$Name]
-
-    if ($null -eq $property) {
-        $InputObject | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
-        return
-    }
-
-    $property.Value = $Value
-}
-
-function Read-JsonFile {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-
-        [switch]$AllowMissing
-    )
-
-    if (-not (Test-Path -LiteralPath $Path)) {
-        if ($AllowMissing) {
-            return $null
-        }
-
-        throw "JSON file not found: $Path"
-    }
-
-    $rawText = Get-Content -Raw -LiteralPath $Path
-
-    if ([string]::IsNullOrWhiteSpace($rawText)) {
-        return $null
-    }
-
-    return $rawText | ConvertFrom-Json
-}
-
-function Write-JsonFile {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-
-        [Parameter(Mandatory = $true)]
-        [object]$Value
-    )
-
-    $directory = Split-Path -Parent $Path
-
-    if (-not [string]::IsNullOrWhiteSpace($directory) -and -not (Test-Path -LiteralPath $directory)) {
-        New-Item -ItemType Directory -Path $directory -Force | Out-Null
-    }
-
-    $json = $Value | ConvertTo-Json -Depth 20
-    [System.IO.File]::WriteAllText($Path, ($json + [Environment]::NewLine), [System.Text.UTF8Encoding]::new($false))
-}
-
-function Remove-FileIfPresent {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path
-    )
-
-    if (Test-Path -LiteralPath $Path) {
-        Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
-    }
-}
-
-function Test-ProcessAlive {
-    param(
-        [int]$Id
-    )
-
-    if ($Id -le 0) {
-        return $false
-    }
-
-    try {
-        $null = Get-Process -Id $Id -ErrorAction Stop
-        return $true
-    }
-    catch {
-        return $false
-    }
 }
 
 function Get-HomelabManagerLockInfo {
@@ -583,15 +450,6 @@ function Unregister-HomelabManagerScheduledTask {
         catch {
             throw $combinedOutput
         }
-    }
-}
-
-function Start-HomelabManagerScheduledTask {
-    $taskName = Get-HomelabManagerTaskName
-    $result = Invoke-NativeCommand -FilePath "schtasks.exe" -Arguments @("/Run", "/TN", $taskName)
-
-    if ($result.ExitCode -ne 0) {
-        throw (($result.StdErr + [Environment]::NewLine + $result.StdOut).Trim())
     }
 }
 
@@ -1447,36 +1305,6 @@ function Send-JsonResponse {
     $payload = (Convert-HomelabManagerJsonValue -Value $Value) | ConvertTo-Json -Depth 20
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($payload)
     Write-HomelabManagerResponse -Response $Response -StatusCode $StatusCode -BodyBytes $bytes -ContentType "application/json; charset=utf-8"
-}
-
-function Send-TextResponse {
-    param(
-        [Parameter(Mandatory = $true)]
-        $Response,
-
-        [Parameter(Mandatory = $true)]
-        [int]$StatusCode,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Content,
-
-        [string]$ContentType = "text/plain; charset=utf-8"
-    )
-
-    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Content)
-    Write-HomelabManagerResponse -Response $Response -StatusCode $StatusCode -BodyBytes $bytes -ContentType $ContentType
-}
-
-function Send-NoContentResponse {
-    param(
-        [Parameter(Mandatory = $true)]
-        $Response,
-
-        [Parameter(Mandatory = $true)]
-        [int]$StatusCode
-    )
-
-    Write-HomelabManagerResponse -Response $Response -StatusCode $StatusCode -BodyBytes @() -ContentType "text/plain; charset=utf-8"
 }
 
 function Convert-HomelabManagerJsonValue {

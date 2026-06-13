@@ -60,7 +60,11 @@ This document gives the short version of what each file is for, so a new person 
 
 `scripts/lib/*.ps1`
 - Focused PowerShell helper files grouped by responsibility.
-- Covers logging, native command execution, config loading, dependency discovery, model validation, Ollama control, Docker Compose calls, Open WebUI config synchronization and runtime patching, HTTP health checks, TTS validation, Tailscale HTTPS automation, and Wake-on-LAN delivery.
+- Covers shared utilities, logging, native command execution, config loading, dependency discovery, model validation, Ollama control, Docker Compose calls, Open WebUI config synchronization and runtime patching, HTTP health checks, TTS validation, and Tailscale HTTPS automation.
+
+`scripts/check.ps1`
+- Lightweight developer check script.
+- Parses tracked PowerShell scripts, validates config JSON files, and runs the manager UI check.
 
 `scripts/setup.ps1`
 - Validates the local prerequisites.
@@ -108,12 +112,6 @@ This document gives the short version of what each file is for, so a new person 
 - React and TypeScript source for the manager dashboard.
 - `npm.cmd run build` writes the static SPA to `scripts/manager-ui/dist`, which is served by the manager service.
 - Contains the login page, operator console, editing forms, and live job UI.
-
-## wake-relay/
-
-`wake-relay/`
-- Standalone companion Wake Relay project scaffolded inside this workspace.
-- Intended to become its own repo for the always-on machine that sends magic packets over the home LAN.
 
 ## logs/
 

@@ -7,6 +7,7 @@ $script:CurrentLogPath = $null
 $script:HomelabScriptModules = @(
     "logging.ps1",
     "runtime.ps1",
+    "utilities.ps1",
     "power.ps1",
     "models.ps1",
     "config.ps1",

@@ -264,38 +264,6 @@ function Convert-WindowsPathToWslPath {
     return "/mnt/$driveLetter/$relativePath"
 }
 
-function Get-HomelabRepoRuntimePath {
-    param(
-        [Parameter(Mandatory = $true)]
-        [pscustomobject]$Config
-    )
-
-    if (Test-HomelabContainerBackendWsl -Config $Config) {
-        return Convert-WindowsPathToWslPath -Path $script:HomelabRoot
-    }
-
-    return [System.IO.Path]::GetFullPath($script:HomelabRoot)
-}
-
-function Get-HomelabOllamaModelsRuntimePath {
-    param(
-        [Parameter(Mandatory = $true)]
-        [pscustomobject]$Config
-    )
-
-    $modelsPath = [string]$Config.ollama_models_path
-
-    if ([string]::IsNullOrWhiteSpace($modelsPath)) {
-        return ""
-    }
-
-    if (Test-HomelabOllamaBackendWsl -Config $Config) {
-        return Convert-WindowsPathToWslPath -Path $modelsPath
-    }
-
-    return [System.IO.Path]::GetFullPath($modelsPath)
-}
-
 function Get-WslCommandArguments {
     param(
         [Parameter(Mandatory = $true)]

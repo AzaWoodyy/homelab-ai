@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 let csrfToken: string | null = null;
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 export class ApiError extends Error {
   constructor(
@@ -17,8 +18,11 @@ export function setCsrfToken(token: string | null): void {
   csrfToken = token;
 }
 
-export function getCsrfToken(): string | null {
-  return csrfToken;
+function jsonRequest(method: "POST" | "PUT", body: unknown = {}): RequestInit {
+  return {
+    method,
+    body: JSON.stringify(body),
+  };
 }
 
 async function parseResponse(response: Response): Promise<unknown> {
@@ -43,7 +47,7 @@ export async function apiJson<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  if (!["GET", "HEAD", "OPTIONS"].includes(method) && csrfToken) {
+  if (!SAFE_METHODS.has(method) && csrfToken) {
     headers.set("X-CSRF-Token", csrfToken);
   }
 
@@ -66,4 +70,16 @@ export async function apiJson<T>(
   }
 
   return schema.parse(body);
+}
+
+export function apiGet<T>(path: string, schema: z.Schema<T>): Promise<T> {
+  return apiJson(path, schema);
+}
+
+export function apiPost<T>(path: string, schema: z.Schema<T>, body?: unknown): Promise<T> {
+  return apiJson(path, schema, jsonRequest("POST", body));
+}
+
+export function apiPut<T>(path: string, schema: z.Schema<T>, body?: unknown): Promise<T> {
+  return apiJson(path, schema, jsonRequest("PUT", body));
 }

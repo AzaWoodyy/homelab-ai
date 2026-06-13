@@ -5,24 +5,20 @@ function Get-HomelabRawConfig {
         throw "Config file not found: $configPath"
     }
 
-    return Get-Content -Raw -LiteralPath $configPath | ConvertFrom-Json
+    return Read-JsonFile -Path $configPath
 }
 
 function Get-HomelabLocalRawConfig {
     $localConfigPath = Join-Path $script:HomelabRoot "config\homelab.local.json"
 
-    if (-not (Test-Path -LiteralPath $localConfigPath)) {
-        return $null
-    }
-
-    return Get-Content -Raw -LiteralPath $localConfigPath | ConvertFrom-Json
+    return Read-JsonFile -Path $localConfigPath -AllowMissing
 }
 
 function Get-HomelabConfig {
     $rawConfig = Get-HomelabRawConfig
     $localConfig = Get-HomelabLocalRawConfig
 
-    $hostname = [string]$rawConfig.hostname
+    $hostname = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hostname") -DefaultValue "")
 
     if ([string]::IsNullOrWhiteSpace($hostname)) {
         $hostname = "homelab-ai"
@@ -30,15 +26,13 @@ function Get-HomelabConfig {
 
     $port = 3000
 
-    if ($null -ne $rawConfig.openwebui_port) {
-        $port = [int]$rawConfig.openwebui_port
-    }
+    $port = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui_port") -DefaultValue $port)
 
     if ($port -lt 1 -or $port -gt 65535) {
         throw "openwebui_port must be between 1 and 65535."
     }
 
-    $imageTag = [string]$rawConfig.openwebui_image_tag
+    $imageTag = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui_image_tag") -DefaultValue "")
 
     if ([string]::IsNullOrWhiteSpace($imageTag)) {
         $imageTag = "v0.9.5"
@@ -53,53 +47,16 @@ function Get-HomelabConfig {
     $runtimeWslDistro = "Ubuntu"
     $runtimeOllamaBackend = "windows-process"
 
-    if ($localConfig -and ($localConfig.PSObject.Properties.Name -contains "webui_secret_key") -and $null -ne $localConfig.webui_secret_key) {
-        $webUiSecretKey = [string]$localConfig.webui_secret_key
-    }
-
-    if ($localConfig -and ($localConfig.PSObject.Properties.Name -contains "management_admin_secret") -and $null -ne $localConfig.management_admin_secret) {
-        $managementAdminSecret = [string]$localConfig.management_admin_secret
-    }
-
-    if (($rawConfig.PSObject.Properties.Name -contains "ollama") -and $null -ne $rawConfig.ollama) {
-        if (($rawConfig.ollama.PSObject.Properties.Name -contains "models_path") -and $null -ne $rawConfig.ollama.models_path) {
-            $ollamaModelsPath = [string]$rawConfig.ollama.models_path
-        }
-    }
-
-    if (($rawConfig.PSObject.Properties.Name -contains "runtime") -and $null -ne $rawConfig.runtime) {
-        if (($rawConfig.runtime.PSObject.Properties.Name -contains "container_backend") -and $null -ne $rawConfig.runtime.container_backend) {
-            $runtimeContainerBackend = [string]$rawConfig.runtime.container_backend
-        }
-
-        if (($rawConfig.runtime.PSObject.Properties.Name -contains "wsl_distro") -and $null -ne $rawConfig.runtime.wsl_distro) {
-            $runtimeWslDistro = [string]$rawConfig.runtime.wsl_distro
-        }
-
-        if (($rawConfig.runtime.PSObject.Properties.Name -contains "ollama_backend") -and $null -ne $rawConfig.runtime.ollama_backend) {
-            $runtimeOllamaBackend = [string]$rawConfig.runtime.ollama_backend
-        }
-    }
-
-    if ($localConfig -and ($localConfig.PSObject.Properties.Name -contains "runtime") -and $null -ne $localConfig.runtime) {
-        if (($localConfig.runtime.PSObject.Properties.Name -contains "container_backend") -and $null -ne $localConfig.runtime.container_backend) {
-            $runtimeContainerBackend = [string]$localConfig.runtime.container_backend
-        }
-
-        if (($localConfig.runtime.PSObject.Properties.Name -contains "wsl_distro") -and $null -ne $localConfig.runtime.wsl_distro) {
-            $runtimeWslDistro = [string]$localConfig.runtime.wsl_distro
-        }
-
-        if (($localConfig.runtime.PSObject.Properties.Name -contains "ollama_backend") -and $null -ne $localConfig.runtime.ollama_backend) {
-            $runtimeOllamaBackend = [string]$localConfig.runtime.ollama_backend
-        }
-    }
-
-    if ($localConfig -and ($localConfig.PSObject.Properties.Name -contains "ollama") -and $null -ne $localConfig.ollama) {
-        if (($localConfig.ollama.PSObject.Properties.Name -contains "models_path") -and $null -ne $localConfig.ollama.models_path) {
-            $ollamaModelsPath = [string]$localConfig.ollama.models_path
-        }
-    }
+    $webUiSecretKey = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("webui_secret_key") -DefaultValue $webUiSecretKey)
+    $managementAdminSecret = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("management_admin_secret") -DefaultValue $managementAdminSecret)
+    $ollamaModelsPath = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("ollama", "models_path") -DefaultValue $ollamaModelsPath)
+    $runtimeContainerBackend = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("runtime", "container_backend") -DefaultValue $runtimeContainerBackend)
+    $runtimeWslDistro = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("runtime", "wsl_distro") -DefaultValue $runtimeWslDistro)
+    $runtimeOllamaBackend = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("runtime", "ollama_backend") -DefaultValue $runtimeOllamaBackend)
+    $runtimeContainerBackend = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("runtime", "container_backend") -DefaultValue $runtimeContainerBackend)
+    $runtimeWslDistro = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("runtime", "wsl_distro") -DefaultValue $runtimeWslDistro)
+    $runtimeOllamaBackend = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("runtime", "ollama_backend") -DefaultValue $runtimeOllamaBackend)
+    $ollamaModelsPath = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("ollama", "models_path") -DefaultValue $ollamaModelsPath)
 
     if (-not [string]::IsNullOrWhiteSpace($env:WEBUI_SECRET_KEY)) {
         $webUiSecretKey = [string]$env:WEBUI_SECRET_KEY
@@ -148,55 +105,17 @@ function Get-HomelabConfig {
     $managementPort = 3081
     $managementTailscaleHttpsPort = 8443
 
-    if ($null -ne $rawConfig.tts) {
-        if ($null -ne $rawConfig.tts.enabled) {
-            $ttsEnabled = [bool]$rawConfig.tts.enabled
-        }
-
-        if ($null -ne $rawConfig.tts.port) {
-            $ttsPort = [int]$rawConfig.tts.port
-        }
-
-        if ($null -ne $rawConfig.tts.default_voice) {
-            $ttsDefaultVoice = [string]$rawConfig.tts.default_voice
-        }
-
-        if ($null -ne $rawConfig.tts.fallback_voice) {
-            $ttsFallbackVoice = [string]$rawConfig.tts.fallback_voice
-        }
-    }
-
-    if ($null -ne $rawConfig.stt) {
-        if ($null -ne $rawConfig.stt.model) {
-            $sttModel = [string]$rawConfig.stt.model
-        }
-
-        if ($null -ne $rawConfig.stt.language) {
-            $sttLanguage = [string]$rawConfig.stt.language
-        }
-
-        if ($null -ne $rawConfig.stt.auto_update) {
-            $sttAutoUpdate = [bool]$rawConfig.stt.auto_update
-        }
-    }
-
-    if ($null -ne $rawConfig.voice_vision_model) {
-        $voiceVisionModel = [string]$rawConfig.voice_vision_model
-    }
-
-    if ($null -ne $rawConfig.voice_vision_fallback_model) {
-        $voiceVisionFallbackModel = [string]$rawConfig.voice_vision_fallback_model
-    }
-
-    if (($rawConfig.PSObject.Properties.Name -contains "management") -and $null -ne $rawConfig.management) {
-        if (($rawConfig.management.PSObject.Properties.Name -contains "port") -and $null -ne $rawConfig.management.port) {
-            $managementPort = [int]$rawConfig.management.port
-        }
-
-        if (($rawConfig.management.PSObject.Properties.Name -contains "tailscale_https_port") -and $null -ne $rawConfig.management.tailscale_https_port) {
-            $managementTailscaleHttpsPort = [int]$rawConfig.management.tailscale_https_port
-        }
-    }
+    $ttsEnabled = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("tts", "enabled") -DefaultValue $ttsEnabled)
+    $ttsPort = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("tts", "port") -DefaultValue $ttsPort)
+    $ttsDefaultVoice = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("tts", "default_voice") -DefaultValue $ttsDefaultVoice)
+    $ttsFallbackVoice = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("tts", "fallback_voice") -DefaultValue $ttsFallbackVoice)
+    $sttModel = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("stt", "model") -DefaultValue $sttModel)
+    $sttLanguage = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("stt", "language") -DefaultValue $sttLanguage)
+    $sttAutoUpdate = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("stt", "auto_update") -DefaultValue $sttAutoUpdate)
+    $voiceVisionModel = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("voice_vision_model") -DefaultValue $voiceVisionModel)
+    $voiceVisionFallbackModel = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("voice_vision_fallback_model") -DefaultValue $voiceVisionFallbackModel)
+    $managementPort = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("management", "port") -DefaultValue $managementPort)
+    $managementTailscaleHttpsPort = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("management", "tailscale_https_port") -DefaultValue $managementTailscaleHttpsPort)
 
     if ($ttsPort -lt 1 -or $ttsPort -gt 65535) {
         throw "tts.port must be between 1 and 65535."
@@ -307,18 +226,18 @@ function Get-EditableHomelabConfig {
     $rawConfig = Get-HomelabRawConfig
 
     return [ordered]@{
-        openwebui_image_tag        = [string]$rawConfig.openwebui_image_tag
-        voice_vision_model         = [string]$rawConfig.voice_vision_model
-        voice_vision_fallback_model = [string]$rawConfig.voice_vision_fallback_model
+        openwebui_image_tag        = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui_image_tag") -DefaultValue "")
+        voice_vision_model         = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("voice_vision_model") -DefaultValue "")
+        voice_vision_fallback_model = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("voice_vision_fallback_model") -DefaultValue "")
         tts                        = [ordered]@{
-            enabled        = if ($null -ne $rawConfig.tts -and $null -ne $rawConfig.tts.enabled) { [bool]$rawConfig.tts.enabled } else { $true }
-            default_voice  = if ($null -ne $rawConfig.tts) { [string]$rawConfig.tts.default_voice } else { "" }
-            fallback_voice = if ($null -ne $rawConfig.tts) { [string]$rawConfig.tts.fallback_voice } else { "" }
+            enabled        = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("tts", "enabled") -DefaultValue $true)
+            default_voice  = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("tts", "default_voice") -DefaultValue "")
+            fallback_voice = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("tts", "fallback_voice") -DefaultValue "")
         }
         stt                        = [ordered]@{
-            model       = if ($null -ne $rawConfig.stt) { [string]$rawConfig.stt.model } else { "" }
-            language    = if ($null -ne $rawConfig.stt) { [string]$rawConfig.stt.language } else { "" }
-            auto_update = if ($null -ne $rawConfig.stt -and $null -ne $rawConfig.stt.auto_update) { [bool]$rawConfig.stt.auto_update } else { $false }
+            model       = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("stt", "model") -DefaultValue "")
+            language    = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("stt", "language") -DefaultValue "")
+            auto_update = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("stt", "auto_update") -DefaultValue $false)
         }
     }
 }
@@ -370,24 +289,19 @@ function Save-EditableHomelabConfig {
     $rawConfig.voice_vision_model = [string]$EditableConfig.voice_vision_model
     $rawConfig.voice_vision_fallback_model = [string]$EditableConfig.voice_vision_fallback_model
 
-    if ($null -eq $rawConfig.tts) {
-        $rawConfig | Add-Member -NotePropertyName "tts" -NotePropertyValue ([pscustomobject]@{}) -Force
-    }
+    $ttsConfig = Ensure-HomelabNestedObjectProperty -InputObject $rawConfig -Name "tts"
 
-    $rawConfig.tts.enabled = [bool]$EditableConfig.tts.enabled
-    $rawConfig.tts.default_voice = [string]$EditableConfig.tts.default_voice
-    $rawConfig.tts.fallback_voice = [string]$EditableConfig.tts.fallback_voice
+    Set-HomelabObjectPropertyValue -InputObject $ttsConfig -Name "enabled" -Value ([bool]$EditableConfig.tts.enabled)
+    Set-HomelabObjectPropertyValue -InputObject $ttsConfig -Name "default_voice" -Value ([string]$EditableConfig.tts.default_voice)
+    Set-HomelabObjectPropertyValue -InputObject $ttsConfig -Name "fallback_voice" -Value ([string]$EditableConfig.tts.fallback_voice)
 
-    if ($null -eq $rawConfig.stt) {
-        $rawConfig | Add-Member -NotePropertyName "stt" -NotePropertyValue ([pscustomobject]@{}) -Force
-    }
+    $sttConfig = Ensure-HomelabNestedObjectProperty -InputObject $rawConfig -Name "stt"
 
-    $rawConfig.stt.model = [string]$EditableConfig.stt.model
-    $rawConfig.stt.language = [string]$EditableConfig.stt.language
-    $rawConfig.stt.auto_update = [bool]$EditableConfig.stt.auto_update
+    Set-HomelabObjectPropertyValue -InputObject $sttConfig -Name "model" -Value ([string]$EditableConfig.stt.model)
+    Set-HomelabObjectPropertyValue -InputObject $sttConfig -Name "language" -Value ([string]$EditableConfig.stt.language)
+    Set-HomelabObjectPropertyValue -InputObject $sttConfig -Name "auto_update" -Value ([bool]$EditableConfig.stt.auto_update)
 
-    $json = $rawConfig | ConvertTo-Json -Depth 10
-    [System.IO.File]::WriteAllText($configPath, ($json + [Environment]::NewLine), [System.Text.UTF8Encoding]::new($false))
+    Write-JsonFile -Path $configPath -Value $rawConfig -Depth 10
 
     return Get-EditableHomelabConfig
 }

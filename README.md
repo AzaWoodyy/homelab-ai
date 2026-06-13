@@ -66,7 +66,7 @@ If you want the gaming PC to wake reliably before you connect to it:
 
 - Complete the target PC and network prerequisites in [Wake-on-LAN Setup Guide](./docs/wake-on-lan.md).
 - Run the dedicated relay service on a separate always-on LAN node.
-- Use the standalone companion project in [`wake-relay/`](./wake-relay/README.md) as the starting point for that always-on machine repo.
+- Keep that relay project outside this repo so the homelab stack stays focused on the gaming PC runtime.
 
 The remote wake path is:
 
@@ -96,6 +96,12 @@ Check health:
 
 ```powershell
 .\scripts\test.ps1
+```
+
+Run developer checks:
+
+```powershell
+.\scripts\check.ps1
 ```
 
 Start the remote manager:
@@ -141,6 +147,10 @@ Stop the stack:
 
 `.\scripts\test.ps1`
 - Verifies config, models, Docker Compose, Open WebUI health, local TTS health, direct TTS synthesis, Open WebUI TTS proxy synthesis, local HTTP reachability, Tailscale Serve config, and remote HTTPS reachability.
+
+`.\scripts\check.ps1`
+- Runs lightweight developer checks without starting the stack.
+- Parses tracked PowerShell scripts, validates repo config JSON files, and runs the manager UI TypeScript/Vitest check.
 
 `.\scripts\wsl-bootstrap.ps1`
 - Installs or validates the configured WSL distro.
@@ -193,6 +203,7 @@ Manager UI development:
 ```powershell
 cd .\scripts\manager-ui
 npm.cmd install
+npm.cmd run check
 npm.cmd run dev
 npm.cmd run build
 ```
@@ -297,4 +308,3 @@ The manager also writes runtime state, pending apply metadata, sessions, and job
 - [Changelog](./CHANGELOG.md)
 - [Repository Map](./docs/repository-map.md)
 - [Wake-on-LAN Setup Guide](./docs/wake-on-lan.md)
-- [Wake Relay Companion Project](./wake-relay/README.md)

@@ -1,16 +1,9 @@
-import { apiJson } from "./client";
-import { modelSaveResponseSchema, modelsResponseSchema, type ModelSaveResponse, type ModelsResponse } from "./schemas";
-
-export function getModels(): Promise<ModelsResponse> {
-  return apiJson("/api/models", modelsResponseSchema);
-}
+import { apiPut } from "./client";
+import { modelSaveResponseSchema, type ModelSaveResponse } from "./schemas";
 
 export function saveModels(models: string[], uninstallRemoved: boolean): Promise<ModelSaveResponse> {
-  return apiJson("/api/models", modelSaveResponseSchema, {
-    method: "PUT",
-    body: JSON.stringify({
-      models,
-      uninstall_removed: uninstallRemoved,
-    }),
+  return apiPut("/api/models", modelSaveResponseSchema, {
+    models,
+    uninstall_removed: uninstallRemoved,
   });
 }
