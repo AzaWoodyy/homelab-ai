@@ -12,6 +12,18 @@ This document gives the short version of what each file is for, so a new person 
 - Release notes for the repo.
 - Summarizes what changed between published versions.
 
+`LICENSE`
+- MIT license.
+
+`.github/workflows/ci.yml`
+- GitHub Actions checks on a Windows runner: PowerShell parsing, PSScriptAnalyzer, config JSON validation, and the manager UI typecheck, tests and build.
+
+`.github/dependabot.yml`
+- Weekly dependency update pull requests for the manager UI and the GitHub Actions used by CI.
+
+`PSScriptAnalyzerSettings.psd1`
+- Lint rules applied to the PowerShell scripts in CI.
+
 `.gitignore`
 - Ignores local-only working files such as script logs.
 - Ignores the local secret override file for Open WebUI.
@@ -32,7 +44,7 @@ This document gives the short version of what each file is for, so a new person 
 `config/models.json`
 - List of Ollama models the repo expects to exist locally.
 - `setup.ps1` reads this file and keeps the machine aligned with it.
-- Includes `hermes3:8b` for the Hermes Agent default model path.
+- Kept to a small default set; the optional catalog is documented in `docs/models.md`.
 
 ## docker/
 
@@ -51,6 +63,9 @@ This document gives the short version of what each file is for, so a new person 
 - This file.
 - Useful when you want the "what is each file for" view.
 
+`docs/scripts.md`, `docs/configuration.md`, `docs/models.md`, `docs/remote-access.md`, `docs/hermes.md`
+- Operator documentation: every script, every config key, the model list, remote access and security model, and the optional Hermes gateway.
+
 `docs/wake-on-lan.md`
 - Contributor guide for reliable Wake-on-LAN setup on the Windows gaming PC.
 - Covers firmware prerequisites, Windows and NIC settings, local validation, and the Tailscale relay topology.
@@ -62,7 +77,8 @@ This document gives the short version of what each file is for, so a new person 
 - Sets repo-level script state and loads the focused helpers in `scripts/lib/`.
 
 `scripts/lib/*.ps1`
-- Focused PowerShell helper files grouped by responsibility.
+- Focused PowerShell helper files grouped by responsibility, loaded in order by `scripts/common.ps1`.
+- The manager service is split into `manager-state.ps1` (state paths and persisted jobs, sessions, pending actions), `manager-process.ps1` (service process and scheduled task), `manager-jobs.ps1` (action runner), `manager-auth.ps1` (sessions, CSRF, cookies, sign-in throttle), `manager-http.ps1` (HTTP responses and static files), `manager-probes.ps1` (Docker, Ollama and Tailscale probes), `manager-summary.ps1` (cached dashboard summary) and `manager-api.ps1` (routes).
 - Covers shared utilities, logging, native command execution, config loading, dependency discovery, model validation, Ollama control, Docker Compose calls, Open WebUI config synchronization and runtime patching, HTTP health checks, TTS validation, and Tailscale HTTPS automation.
 - Also includes Hermes Agent helper logic for `HERMES_HOME`, generated runtime config, gateway lifecycle, status probes, and safe platform readiness summaries.
 
@@ -116,9 +132,20 @@ This document gives the short version of what each file is for, so a new person 
 `scripts/manager-status.ps1`, `scripts/manager-test.ps1`
 - Quick diagnostics for the manager control surface itself.
 
-`scripts/manager-ui/*`
+`scripts/stack-install.ps1`, `scripts/stack-startup.ps1`
+- Boot-time scheduled task that starts the whole stack with retries once Docker is ready.
+
+`scripts/sleep.ps1`, `scripts/shutdown.ps1`
+- Stop the stack, then put the PC to sleep or shut it down after a short delay.
+
+`scripts/manager-job-runner.ps1`, `scripts/manager-summary-refresh.ps1`
+- Internal processes started by the manager to run one action at a time and refresh the cached summary.
+
+## manager-ui/
+
+`manager-ui/*`
 - React and TypeScript source for the manager dashboard.
-- `npm.cmd run build` writes the static SPA to `scripts/manager-ui/dist`, which is served by the manager service.
+- `npm.cmd run build` writes the static SPA to `manager-ui/dist`, which is served by the manager service.
 - Contains the login page, operator console, editing forms, and live job UI.
 - Includes an Agent page for Hermes gateway state, API server reachability, platform readiness, missing config, and gateway logs.
 

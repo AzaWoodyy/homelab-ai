@@ -4,29 +4,57 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+Planned as 2.0.0: optional Hermes Agent gateway, plus a cleanup to publish the repository.
+
 ### Added
 
 - Optional Hermes Agent support with repo-managed `HERMES_HOME`, generated local Hermes `.env`/`config.yaml`, gateway lifecycle scripts, manager actions, status probes, and an Agent dashboard page.
-- `hermes3:8b` as a configured Ollama model for the Hermes Agent local model path.
-- Local-only Hermes secret examples for Discord, Photon iMessage, and the Hermes API server.
-- Photon iMessage support in Hermes config, generated environment, manager UI readiness, and docs.
-- Hermes validation in setup/test flows, including explicit missing-secret reporting when Hermes is enabled.
-- A host-native remote management dashboard with a PowerShell control service, authenticated JSON API, static operator UI, and one-job-at-a-time action runner.
-- Manager lifecycle scripts for start, stop, restart, install, uninstall, status, and manager-specific validation.
-- Manager config support in `config/homelab.json` plus local-only `management_admin_secret` support.
-- Local manager runtime state under `state/manager/` for sessions, pending apply metadata, job history, and job logs.
-- A new `scripts/wsl-bootstrap.ps1` flow to install and validate the Ubuntu WSL runtime, Docker Engine, Docker Compose plugin, and Ollama service.
+- Photon iMessage and Discord channels for Hermes, with local-only secret examples and allowlist-first defaults.
+- Hermes validation in setup and test flows, including explicit missing-secret reporting when Hermes is enabled.
+- `hermes3:8b` as the default Hermes model.
+- Sign-in throttling on the manager: after five failed attempts the login endpoint answers `429` with an exponential lockout capped at 15 minutes.
+- GitHub Actions CI on Windows: PowerShell parsing, PSScriptAnalyzer, config JSON validation, manager UI typecheck, tests and build.
+- Dependabot updates for the manager UI and GitHub Actions.
+- MIT license.
+- Operator docs split by topic: `docs/scripts.md`, `docs/configuration.md`, `docs/models.md`, `docs/remote-access.md`, `docs/hermes.md`.
 
 ### Changed
 
-- `scripts/status.ps1` now reports manager reachability, remote URLs, manager Tailscale Serve status, and pending apply actions.
-- `README.md` and `docs/repository-map.md` now document the remote manager workflow and new scripts.
-- The runtime abstraction now supports `wsl-docker-engine` and `wsl-service` backends, with Docker Compose and Ollama commands routed through `wsl.exe` when selected.
-- `config/homelab.json` now includes an explicit `runtime` section defaulting this machine to Ubuntu WSL 2 for Docker and Ollama.
-- `docker/compose.yml` now adds `host.docker.internal:host-gateway` so Open WebUI can still reach Ollama when Docker runs inside Linux.
-- Open WebUI is now pinned to `v0.9.6`, with repo-managed MCP timeout, opt-in KB exec, and optional profile image size cap settings exposed through config and the manager UI.
+- `README.md` rewritten as a project overview: highlights, architecture diagram, stack, quick start, and links to the detailed docs.
+- The manager dashboard moved from `scripts/manager-ui` to `manager-ui`.
+- `scripts/lib/manager.ps1` split into focused modules (`manager-state`, `manager-process`, `manager-jobs`, `manager-auth`, `manager-http`, `manager-probes`, `manager-summary`, `manager-api`) with no behavior change.
+- `config/models.json` reduced to a default set of six models; the other models are documented as an optional catalog in `docs/models.md`.
+- The OpenedAI Speech image is pinned by digest instead of `latest`.
 
-## [0.2.0]
+### Fixed
+
+- Manager UI dev dependencies updated to clear `npm audit` findings (nanoid, postcss, vitest).
+
+## [1.0.0](https://github.com/AzaWoodyy/homelab-ai/releases/tag/1.0.0) - 2026-06-13
+
+### Added
+
+- A host-native remote management dashboard: PowerShell control service, authenticated JSON API, React + TypeScript SPA, and a one-job-at-a-time action runner.
+- Manager lifecycle scripts for start, stop, restart, install, uninstall, status, and manager-specific validation.
+- Manager config in `config/homelab.json` plus local-only `management_admin_secret` support.
+- Local manager runtime state under `state/manager/` for sessions, pending apply metadata, job history, and job logs.
+- Local speech: Whisper speech-to-text in Open WebUI and Piper text-to-speech through OpenedAI Speech, with voices cached for offline use.
+- Voice and camera mode with `llava:13b`, including a runtime patch that normalizes camera frames into Ollama-native image payloads.
+- Tailscale Serve HTTPS automation for Open WebUI and the manager.
+- Sleep and shutdown actions, plus a Wake-on-LAN setup guide for a companion relay.
+- A `scripts/wsl-bootstrap.ps1` flow to install and validate the Ubuntu WSL runtime, Docker Engine, Docker Compose plugin, and Ollama service.
+- A boot-time scheduled task (`stack-install.ps1`, `stack-startup.ps1`) that starts the stack once Docker is ready.
+- `scripts/check.ps1` developer checks.
+
+### Changed
+
+- `scripts/status.ps1` reports manager reachability, remote URLs, manager Tailscale Serve status, and pending apply actions.
+- The runtime abstraction supports `wsl-docker-engine` and `wsl-service` backends next to the default Windows backends, routing Docker Compose and Ollama commands through `wsl.exe` when selected.
+- `config/homelab.json` has an explicit `runtime` section. The default stays on Docker Desktop and the Windows Ollama process.
+- `docker/compose.yml` adds `host.docker.internal:host-gateway` so Open WebUI can reach Ollama when Docker runs inside Linux.
+- Open WebUI is pinned to `v0.9.6`, with repo-managed MCP timeout, opt-in KB exec, and optional profile image size cap settings exposed through config and the manager UI.
+
+## [0.2.0](https://github.com/AzaWoodyy/homelab-ai/releases/tag/0.2.0) - 2026-06-06
 
 ### Added
 
@@ -53,7 +81,7 @@ All notable changes to this project will be documented in this file.
 - `config/homelab.json` now pins the Open WebUI release tag in repo config.
 - `README.md` and `docs/architecture.md` now describe the V2 workflow, operational scripts, persistence model, and design boundaries in more detail.
 
-## [0.1.0](https://github.com/AzaWoodyy/homelab-ai/releases/tag/0.1.0)
+## [0.1.0](https://github.com/AzaWoodyy/homelab-ai/releases/tag/0.1.0) - 2026-06-03
 
 ### Added
 
