@@ -17,7 +17,7 @@
     "tailscale_https_port": 8443
   },
   "hermes": {
-    "enabled": true,
+    "enabled": false,
     "home": "state\\hermes",
     "model": "hermes3:8b",
     "gateway": {

@@ -23,6 +23,7 @@ Planned as 2.0.0: optional Hermes Agent gateway, plus a cleanup to publish the r
 - `README.md` rewritten as a project overview: highlights, architecture diagram, stack, quick start, and links to the detailed docs.
 - The manager dashboard moved from `scripts/manager-ui` to `manager-ui`.
 - `scripts/lib/manager.ps1` split into focused modules (`manager-state`, `manager-process`, `manager-jobs`, `manager-auth`, `manager-http`, `manager-probes`, `manager-summary`, `manager-api`) with no behavior change.
+- Hermes is disabled by default in `config/homelab.json`, so a fresh clone can run `setup.ps1` without the Hermes CLI or its secrets.
 - `config/models.json` reduced to a default set of six models; the other models are documented as an optional catalog in `docs/models.md`.
 - The OpenedAI Speech image is pinned by digest instead of `latest`.
 

@@ -5,7 +5,7 @@
 
 A private, self-hosted AI workspace that turns one Windows gaming PC into a personal AI server: local LLM chat, voice and camera mode, an optional messaging agent, and a secured remote dashboard, all reachable from a laptop or phone over Tailscale.
 
-Nothing leaves the machine: models run in Ollama, speech-to-text and text-to-speech run locally, and every service listens on `127.0.0.1` only. Remote access goes through a Tailscale HTTPS tunnel.
+Inference and speech stay on the machine: models run in Ollama, speech-to-text and text-to-speech run locally, and every service listens on `127.0.0.1` only. Remote access goes through a Tailscale HTTPS tunnel. The only exception is the optional Hermes gateway, which exchanges messages with Discord or iMessage when you enable it.
 
 <!-- Add a screenshot of the manager dashboard here, for example:
 ![Manager dashboard](./docs/images/manager-overview.png)
@@ -78,7 +78,9 @@ Prerequisites: Windows 11 (an NVIDIA GPU is strongly recommended), Docker Deskto
 Copy-Item config\homelab.local.example.json config\homelab.local.json
 # then edit webui_secret_key and management_admin_secret
 
-# 2. Optional: install Docker Engine and Ollama inside WSL instead of Windows
+# 2. Optional: run Docker Engine and Ollama inside WSL instead of Windows.
+#    First set runtime.container_backend / runtime.ollama_backend in config\homelab.json
+#    (see docs/configuration.md), otherwise this script has nothing to do.
 .\scripts\wsl-bootstrap.ps1
 
 # 3. Pull models, warm up voices, validate prerequisites
@@ -95,7 +97,9 @@ cd manager-ui; npm.cmd ci; npm.cmd run build; cd ..
 
 Open WebUI is then available at `https://<machine>.<tailnet>.ts.net` and the dashboard at `https://<machine>.<tailnet>.ts.net:8443`.
 
-Stop everything with `.\scripts\stop.ps1`.
+Stop the stack with `.\scripts\stop.ps1`, and the dashboard with `.\scripts\manager-stop.ps1`.
+
+The Hermes messaging gateway is disabled by default. To use it, follow [docs/hermes.md](./docs/hermes.md) and set `hermes.enabled` to `true`.
 
 ## Documentation
 

@@ -2,7 +2,7 @@
 
 `config/models.json` lists the Ollama models this machine should have. `setup.ps1` pulls the missing ones, `test.ps1` checks they are installed, and the dashboard Models page edits the list.
 
-Removing a model from the file does not delete it from disk. Only removing it from the dashboard Models page runs `ollama rm`.
+Removing a model from the file does not delete it from disk. The dashboard Models page runs `ollama rm` on removed models only when "Uninstall deleted models" is switched on before saving.
 
 ## Default set
 

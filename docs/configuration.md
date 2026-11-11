@@ -31,7 +31,7 @@ Most settings can also be edited from the manager dashboard (Config and Models p
     "port": 3081,
     "tailscale_https_port": 8443
   },
-  "hermes": { "enabled": true, "model": "hermes3:8b", "...": "see hermes.md" },
+  "hermes": { "enabled": false, "model": "hermes3:8b", "...": "see hermes.md" },
   "voice_vision_model": "llava:13b",
   "voice_vision_fallback_model": "qwen3.5:9b",
   "tts": {

@@ -2,7 +2,7 @@
 
 [Hermes Agent](https://github.com/NousResearch/hermes-agent) is an optional messaging gateway. It lets you talk to the local models from Discord or iMessage, and it exposes an OpenAI-compatible API that Open WebUI can use as an extra connection.
 
-`config/homelab.json` turns it on with `hermes.enabled`. Set it to `false` if Hermes is not installed: setup, start and test then skip it entirely.
+It is disabled by default. While `hermes.enabled` is `false` in `config/homelab.json`, setup, start, stop and test skip it entirely. Complete the setup below before turning it on: with Hermes enabled, `setup.ps1` stops on a missing CLI or missing secrets.
 
 ## Request path
 
@@ -12,7 +12,7 @@
 
 ```json
 "hermes": {
-  "enabled": true,
+  "enabled": false,
   "home": "state\\hermes",
   "model": "hermes3:8b",
   "gateway": { "enabled": true },
@@ -48,8 +48,8 @@ Secrets go in `config/homelab.local.json` (see [configuration.md](./configuratio
 1. Install Hermes Agent so `hermes --version` works in PowerShell.
 2. Run `hermes model` once and choose a custom/local endpoint pointing at this machine's Ollama, with a model that has at least a 64K context window.
 3. Run `hermes gateway setup` and select Discord and/or Photon iMessage, or run `hermes photon setup --phone <your E.164 number>` for Photon only.
-4. Fill the secrets in `config/homelab.local.json`, then run `.\scripts\setup.ps1`. It reports every missing value.
-5. Start with `.\scripts\start.ps1` (whole stack) or `.\scripts\hermes-start.ps1` (gateway only).
+4. Fill the secrets in `config/homelab.local.json`.
+5. Set `hermes.enabled` to `true` in `config/homelab.json`, run `.\scripts\setup.ps1`, then start with `.\scripts\start.ps1` (whole stack) or `.\scripts\hermes-start.ps1` (gateway only).
 
 ## Channels
 
