@@ -18,7 +18,14 @@ $script:HomelabScriptModules = @(
     "hermes.ps1",
     "http.ps1",
     "tailscale.ps1",
-    "manager.ps1"
+    "manager-state.ps1",
+    "manager-process.ps1",
+    "manager-jobs.ps1",
+    "manager-auth.ps1",
+    "manager-http.ps1",
+    "manager-probes.ps1",
+    "manager-summary.ps1",
+    "manager-api.ps1"
 )
 
 foreach ($moduleName in $script:HomelabScriptModules) {
