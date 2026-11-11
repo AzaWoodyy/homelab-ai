@@ -90,11 +90,23 @@ function Handle-HomelabManagerApiRequest {
     if ($Path -eq "/api/auth/login" -and $method -eq "POST") {
         $config = Get-HomelabConfig
         Assert-ManagementAdminSecretConfigured -Config $config
+        $retryAfterSeconds = Get-HomelabManagerLoginRetryAfterSeconds
+
+        if ($retryAfterSeconds -gt 0) {
+            Send-JsonResponse -Response $response -StatusCode 429 -Value ([ordered]@{
+                error               = "too_many_attempts"
+                message             = "Too many failed sign-in attempts. Try again in $retryAfterSeconds seconds."
+                retry_after_seconds = $retryAfterSeconds
+            })
+            return
+        }
+
         $body = Read-RequestBodyJson -Request $request
         $submittedSecretHash = Get-HomelabSha256Hex -Value ([string]$body.secret)
         $expectedSecretHash = Get-HomelabSha256Hex -Value ([string]$config.management_admin_secret)
 
         if (-not (Test-HomelabConstantTimeStringEqual -Left $submittedSecretHash -Right $expectedSecretHash)) {
+            Register-HomelabManagerLoginFailure
             Send-JsonResponse -Response $response -StatusCode 401 -Value ([ordered]@{
                 error = "invalid_credentials"
                 message = "The admin secret is incorrect."
@@ -102,6 +114,7 @@ function Handle-HomelabManagerApiRequest {
             return
         }
 
+        Reset-HomelabManagerLoginThrottle
         $session = New-HomelabManagerSession
         Set-HomelabManagerSessionCookie -Response $response -Request $request -Token ([string]$session.token) -ExpiresAt ([string]$session.expires_at)
         Send-JsonResponse -Response $response -StatusCode 200 -Value ([ordered]@{

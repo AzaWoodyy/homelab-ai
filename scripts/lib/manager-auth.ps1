@@ -307,3 +307,61 @@ function Assert-HomelabManagerCsrfRequest {
 
     return $true
 }
+
+function Get-HomelabManagerLoginThrottleState {
+    $state = Read-JsonFile -Path (Get-ManagerLoginThrottlePath) -AllowMissing
+
+    if ($null -eq $state) {
+        return [pscustomobject]@{
+            failures     = 0
+            locked_until = $null
+        }
+    }
+
+    return $state
+}
+
+function Get-HomelabManagerLoginRetryAfterSeconds {
+    $state = Get-HomelabManagerLoginThrottleState
+    $lockedUntilValue = Get-HomelabObjectPropertyValue -InputObject $state -Name "locked_until" -DefaultValue $null
+    $lockedUntil = [datetime]::MinValue
+
+    if ($lockedUntilValue -is [datetime]) {
+        $lockedUntil = $lockedUntilValue
+    }
+    elseif ([string]::IsNullOrWhiteSpace([string]$lockedUntilValue) -or -not [datetime]::TryParse([string]$lockedUntilValue, [ref]$lockedUntil)) {
+        return 0
+    }
+
+    return [int][math]::Max(0, [math]::Ceiling(($lockedUntil - (Get-Date)).TotalSeconds))
+}
+
+function Register-HomelabManagerLoginFailure {
+    # Five free attempts, then an exponential lockout: 30s, 60s, 120s... capped at 15 minutes.
+    $freeAttempts = 5
+    $baseLockSeconds = 30
+    $maxLockSeconds = 900
+
+    $state = Get-HomelabManagerLoginThrottleState
+    $failures = [int](Get-HomelabObjectPropertyValue -InputObject $state -Name "failures" -DefaultValue 0) + 1
+    $lockedUntil = $null
+
+    if ($failures -ge $freeAttempts) {
+        $exponent = [math]::Min($failures - $freeAttempts, 10)
+        $lockSeconds = [math]::Min($baseLockSeconds * [math]::Pow(2, $exponent), $maxLockSeconds)
+        $lockedUntil = (Get-Date).AddSeconds($lockSeconds).ToString("o")
+    }
+
+    Write-JsonFile -Path (Get-ManagerLoginThrottlePath) -Value ([ordered]@{
+        failures     = $failures
+        locked_until = $lockedUntil
+    })
+}
+
+function Reset-HomelabManagerLoginThrottle {
+    $path = Get-ManagerLoginThrottlePath
+
+    if (Test-Path -LiteralPath $path) {
+        Remove-Item -LiteralPath $path -Force
+    }
+}

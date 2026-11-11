@@ -50,6 +50,7 @@ function Get-HomelabManagerReasonPhrase {
         404 { return "Not Found" }
         405 { return "Method Not Allowed" }
         409 { return "Conflict" }
+        429 { return "Too Many Requests" }
         500 { return "Internal Server Error" }
         default { return "OK" }
     }

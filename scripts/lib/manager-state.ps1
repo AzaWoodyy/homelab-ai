@@ -53,6 +53,10 @@ function Get-ManagerSessionsPath {
     return Join-Path (Ensure-ManagerStateRoot) "sessions.json"
 }
 
+function Get-ManagerLoginThrottlePath {
+    return Join-Path (Ensure-ManagerStateRoot) "login-throttle.json"
+}
+
 function Get-ManagerPendingApplyPath {
     return Join-Path (Ensure-ManagerStateRoot) "pending-apply.json"
 }
