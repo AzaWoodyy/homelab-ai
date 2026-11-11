@@ -1,321 +1,139 @@
 # Homelab AI
 
-Homelab AI is a personal self-hosted AI workspace for coding, research, and small automation workflows.
+[![CI](https://github.com/AzaWoodyy/homelab-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/AzaWoodyy/homelab-ai/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-The current stack is intentionally simple:
+A private, self-hosted AI workspace that turns one Windows gaming PC into a personal AI server: local LLM chat, voice and camera mode, an optional messaging agent, and a secured remote dashboard, all reachable from a laptop or phone over Tailscale.
 
-- Ubuntu runs inside WSL 2 and hosts Docker Engine plus Ollama.
-- Open WebUI runs in Docker and connects to Ollama through `host.docker.internal`.
-- OpenedAI Speech runs in Docker for local text-to-speech.
-- Tailscale is the private remote access and HTTPS layer.
-- A PowerShell manager service provides a remote control dashboard.
-- PowerShell scripts remain the operator surface on Windows and call Docker/Ollama through `wsl.exe`.
+Inference and speech stay on the machine: models run in Ollama, speech-to-text and text-to-speech run locally, and every service listens on `127.0.0.1` only. Remote access goes through a Tailscale HTTPS tunnel. The only exception is the optional Hermes gateway, which exchanges messages with Discord or iMessage when you enable it.
 
-## What This Repo Tries To Do
+<!-- Add a screenshot of the manager dashboard here, for example:
+![Manager dashboard](./docs/images/manager-overview.png)
+-->
 
-- Stay private by default.
-- Be easy to understand and easy to stop.
-- Keep local inference on one powerful PC.
-- Let laptops and phones reach the UI through Tailscale.
-- Avoid heavyweight infrastructure until it is clearly needed.
+## Highlights
 
-## How It Works
+- **One-command lifecycle.** PowerShell scripts install, start, stop, validate and refresh the whole stack (Docker, Ollama, Open WebUI, TTS, Tailscale Serve), with timestamped logs for every run.
+- **Fully local voice and vision.** Whisper speech-to-text, Piper text-to-speech and a vision model (`llava:13b`) give Open WebUI a voice and camera mode that works offline once set up.
+- **Remote management dashboard.** A host-native PowerShell HTTP service plus a React/TypeScript SPA to watch health, edit config and models, and run actions (restart, apply, sleep, shutdown) from a phone.
+- **Security by default.** Loopback-only ports, HTTPS through Tailscale, hashed sessions, `HttpOnly`/`SameSite=Strict` cookies, CSRF tokens, constant-time secret comparison, sign-in throttling, and secrets kept out of git.
+- **Optional agent gateway.** [Hermes Agent](./docs/hermes.md) can answer on Discord or iMessage using the same local models, with allowlists on every channel.
+- **Pluggable runtime.** Docker and Ollama can run either natively on Windows or inside Ubuntu on WSL 2; the scripts route commands through `wsl.exe` when needed.
 
-The main chat path is:
+## Architecture
 
-`Laptop or phone -> Tailscale -> Gaming PC -> Open WebUI -> Ollama -> Local model`
+```mermaid
+flowchart LR
+    subgraph Clients
+        Phone[Phone]
+        Laptop[Laptop]
+    end
 
-The speech path is:
+    subgraph PC["Gaming PC (Windows)"]
+        TS[Tailscale Serve<br/>HTTPS :443 / :8443]
+        subgraph Docker
+            WebUI[Open WebUI<br/>127.0.0.1:3000<br/>Whisper STT]
+            TTS[OpenedAI Speech<br/>Piper TTS<br/>127.0.0.1:8000]
+        end
+        Ollama[Ollama<br/>local models]
+        Manager[Manager service<br/>PowerShell + React<br/>127.0.0.1:3081]
+        Hermes[Hermes Agent<br/>optional]
+    end
 
-`Microphone -> Open WebUI STT (local Whisper) -> Ollama model -> OpenedAI Speech (Piper) -> Speaker`
+    Phone & Laptop -->|tailnet| TS
+    TS --> WebUI
+    TS --> Manager
+    WebUI --> Ollama
+    WebUI --> TTS
+    Hermes --> Ollama
+    Discord[Discord / iMessage] --> Hermes
+    Manager -.controls.-> Docker
+    Manager -.controls.-> Ollama
+```
 
-A few practical notes:
+Main request paths:
 
-- Ollama runs on Windows by default and can reuse the configured local models path.
-- Docker Desktop is the default container runtime path for this repo.
-- Open WebUI runs in Docker on port `3000` by default, but that port is only bound to `127.0.0.1`.
-- OpenedAI Speech runs in Docker on port `8000` by default, and that port is also only bound to `127.0.0.1`.
-- The manager service listens on `127.0.0.1:3081` by default.
-- Docker data is stored in a named volume, so Open WebUI users and chats persist across normal stop/start cycles.
-- Piper voice files are stored in a Docker volume after the first setup warmup, so TTS can stay local and offline after setup.
-- Open WebUI sometimes falls back to OpenAI-style voice ids such as `alloy` in the speaker UI. This repo maps those aliases back to local Piper voices so TTS still stays local.
-- Local speech-to-text uses Whisper `medium` by default with language auto-detect.
-- When you change `stt.model`, run `.\scripts\setup.ps1` once while internet is available so the new Whisper snapshot is cached for offline use.
-- Remote access is intended to use the Tailscale HTTPS URL for this machine, such as `https://<machine>.<tailnet>.ts.net`.
-- The manager dashboard is intended to use the same machine name on a dedicated HTTPS port, such as `https://<machine>.<tailnet>.ts.net:8443`.
+- Chat: `client -> Tailscale -> Open WebUI -> Ollama -> local model`
+- Voice: `microphone -> Whisper (in Open WebUI) -> Ollama -> Piper -> speaker`
+- Messaging: `Discord or iMessage -> Hermes gateway -> Ollama`
 
-## Tailscale HTTPS Prerequisites
+## Tech stack
 
-Remote microphone and speaker-related browser APIs usually require a secure context, which means plain `http://...:3000` is not enough on other devices.
+| Area | Tools |
+| --- | --- |
+| Inference | Ollama, Qwen 3, Llava, Hermes 3 |
+| Chat UI | Open WebUI (pinned `v0.9.6`) |
+| Speech | Whisper (STT), Piper via OpenedAI Speech (TTS) |
+| Automation | PowerShell 7 / Windows PowerShell, Docker Compose, WSL 2, Windows Task Scheduler |
+| Dashboard | React 19, TypeScript, TanStack Query, React Hook Form, Zod, Radix UI, Vite, Vitest |
+| Networking | Tailscale (MagicDNS, Serve, HTTPS certificates) |
+| CI | GitHub Actions: PowerShell parsing, PSScriptAnalyzer, config validation, UI typecheck, tests and build |
 
-Before using the remote URL, make sure:
+## Quick start
 
-- Tailscale is installed on this PC and on each client device.
-- Every client device is signed in to the same tailnet.
-- MagicDNS is enabled for the tailnet.
-- HTTPS certificates are enabled in the Tailscale admin console DNS settings.
-- You run the repo PowerShell scripts from an elevated PowerShell session on Windows, because Tailscale local API access may require Administrator privileges.
-
-When Tailscale HTTPS certificates are enabled, the machine name and tailnet DNS name become visible in certificate transparency logs. That is expected behavior for public CA-issued certificates.
-
-## Wake-on-LAN Companion
-
-Wake-on-LAN is now treated as a companion workflow rather than part of this repo's supported runtime surface.
-
-If you want the gaming PC to wake reliably before you connect to it:
-
-- Complete the target PC and network prerequisites in [Wake-on-LAN Setup Guide](./docs/wake-on-lan.md).
-- Run the dedicated relay service on a separate always-on LAN node.
-- Keep that relay project outside this repo so the homelab stack stays focused on the gaming PC runtime.
-
-The remote wake path is:
-
-`Phone or laptop -> Tailscale -> Wake Relay -> Magic packet -> Gaming PC`
-
-## Quick Start
-
-Initial setup:
+Prerequisites: Windows 11 (an NVIDIA GPU is strongly recommended), Docker Desktop (or WSL 2), [Ollama](https://ollama.com), [Tailscale](https://tailscale.com) with MagicDNS and HTTPS certificates enabled, and Node.js 22.12+ to build the dashboard. Run the scripts from an elevated PowerShell session.
 
 ```powershell
+# 1. Local secrets (ignored by git)
+Copy-Item config\homelab.local.example.json config\homelab.local.json
+# then edit webui_secret_key and management_admin_secret
+
+# 2. Optional: run Docker Engine and Ollama inside WSL instead of Windows.
+#    First set runtime.container_backend / runtime.ollama_backend in config\homelab.json
+#    (see docs/configuration.md), otherwise this script has nothing to do.
 .\scripts\wsl-bootstrap.ps1
-```
 
-Repo setup:
-
-```powershell
+# 3. Pull models, warm up voices, validate prerequisites
 .\scripts\setup.ps1
-```
 
-Start the stack:
-
-```powershell
+# 4. Start the stack and check it end to end
 .\scripts\start.ps1
-```
-
-Check health:
-
-```powershell
 .\scripts\test.ps1
-```
 
-Run developer checks:
-
-```powershell
-.\scripts\check.ps1
-```
-
-Start the remote manager:
-
-```powershell
+# 5. Build and start the remote dashboard
+cd manager-ui; npm.cmd ci; npm.cmd run build; cd ..
 .\scripts\manager-start.ps1
 ```
 
-Check manager health:
+Open WebUI is then available at `https://<machine>.<tailnet>.ts.net` and the dashboard at `https://<machine>.<tailnet>.ts.net:8443`.
+
+Stop the stack with `.\scripts\stop.ps1`, and the dashboard with `.\scripts\manager-stop.ps1`.
+
+The Hermes messaging gateway is disabled by default. To use it, follow [docs/hermes.md](./docs/hermes.md) and set `hermes.enabled` to `true`.
+
+## Documentation
+
+| Topic | Doc |
+| --- | --- |
+| Every script and what it does | [docs/scripts.md](./docs/scripts.md) |
+| Configuration, secrets and runtime backends | [docs/configuration.md](./docs/configuration.md) |
+| Default models and the optional catalog | [docs/models.md](./docs/models.md) |
+| Remote access, voice and camera mode | [docs/remote-access.md](./docs/remote-access.md) |
+| Hermes Agent (Discord, iMessage) | [docs/hermes.md](./docs/hermes.md) |
+| Wake-on-LAN companion setup | [docs/wake-on-lan.md](./docs/wake-on-lan.md) |
+| File-by-file map of the repo | [docs/repository-map.md](./docs/repository-map.md) |
+| Release notes | [CHANGELOG.md](./CHANGELOG.md) |
+
+## Repository layout
+
+```text
+config/       runtime config, model list, local secret example
+docker/       Docker Compose stack (Open WebUI, OpenedAI Speech)
+docs/         operator and contributor documentation
+manager-ui/   React + TypeScript dashboard served by the manager service
+scripts/      PowerShell entry points (setup, start, stop, test, manager-*, hermes-*)
+scripts/lib/  shared PowerShell modules loaded by scripts/common.ps1
+```
+
+## Development
 
 ```powershell
-.\scripts\manager-test.ps1
+.\scripts\check.ps1          # parse all PowerShell, validate config JSON, typecheck + test the UI
+cd manager-ui; npm.cmd run dev   # dashboard dev server on 127.0.0.1
 ```
 
-Stop the stack:
+The same checks run in GitHub Actions on every push and pull request.
 
-```powershell
-.\scripts\stop.ps1
-```
+## License
 
-## Script Guide
-
-`.\scripts\setup.ps1`
-- Validates Docker and Ollama through the configured backend.
-- Reads configured models from `config\models.json`.
-- Pulls only missing models.
-- Reuses `config\homelab.local.json` `ollama.models_path` when you want Ollama model blobs to live outside the default WSL root filesystem.
-- Pulls the local TTS image and warms the configured Piper voices once.
-
-`.\scripts\setup.ps1 -RefreshModels`
-- Re-pulls configured models even if they are already installed.
-
-`.\scripts\start.ps1`
-- Starts the configured Docker backend and Ollama backend.
-- Starts Open WebUI and the local TTS service with Docker Compose.
-- Waits until both local HTTP services are reachable.
-- Configures Tailscale Serve so the remote URL is HTTPS on the tailnet.
-
-`.\scripts\stop.ps1`
-- Removes the repo-managed Tailscale HTTPS mapping.
-- Stops Open WebUI and the local TTS service.
-- Stops Ollama.
-
-`.\scripts\test.ps1`
-- Verifies config, models, Docker Compose, Open WebUI health, local TTS health, direct TTS synthesis, Open WebUI TTS proxy synthesis, local HTTP reachability, Tailscale Serve config, and remote HTTPS reachability.
-
-`.\scripts\check.ps1`
-- Runs lightweight developer checks without starting the stack.
-- Parses tracked PowerShell scripts, validates repo config JSON files, and runs the manager UI TypeScript/Vitest check.
-
-`.\scripts\wsl-bootstrap.ps1`
-- Installs or validates the configured WSL distro.
-- Enables systemd in WSL.
-- Installs Docker Engine, Docker Compose plugin, and Ollama in WSL.
-- Configures the Ollama systemd service to reuse the configured models path when `ollama.models_path` is set.
-- Verifies Docker, Ollama, and optional NVIDIA CUDA visibility in WSL.
-
-If the Docker step still fails because the Ubuntu codename cannot be detected, use this recovery path and rerun bootstrap:
-
-```powershell
-wsl -d <your-distro> -- sh -lc "grep -RhsE '^(deb|Suites:)' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null"
-```
-
-Look for the active Ubuntu suite such as `resolute`, `resolute-updates`, `resolute-backports`, or `resolute-security`, and use the base codename without the suffix.
-
-```powershell
-wsl -d <your-distro> -- sudo rm -f /etc/apt/sources.list.d/docker.list
-.\scripts\wsl-bootstrap.ps1
-```
-
-`.\scripts\status.ps1`
-- Shows the current stack state in a quick human-readable form.
-
-`.\scripts\refresh-models.ps1`
-- Convenience wrapper for `setup.ps1 -RefreshModels`.
-
-`.\scripts\manager-install.ps1 -StartNow`
-- Registers the manager as a Windows user-logon Scheduled Task and starts it immediately.
-
-`.\scripts\manager-start.ps1`
-- Starts the host-native manager service on the local machine.
-- Tries to expose the manager on the configured Tailscale HTTPS port.
-
-`.\scripts\manager-stop.ps1`
-- Stops only the manager control surface and removes its Tailscale HTTPS mapping.
-
-`.\scripts\manager-restart.ps1`
-- Restarts the manager service without touching Open WebUI, TTS, or Ollama.
-
-`.\scripts\manager-status.ps1`
-- Shows the manager process state, reachability, remote URL, and pending apply actions.
-
-`.\scripts\manager-test.ps1`
-- Verifies the manager landing page, login flow, auth guard, and authenticated summary API.
-- Also checks the React SPA fallback, hardened session cookie attributes, session endpoint, and CSRF protection.
-
-Manager UI development:
-
-```powershell
-cd .\scripts\manager-ui
-npm.cmd install
-npm.cmd run check
-npm.cmd run dev
-npm.cmd run build
-```
-
-The manager service serves the production build from `scripts\manager-ui\dist`.
-
-`.\scripts\sleep.ps1`
-- Stops the homelab stack first.
-- Queues a short delayed Windows sleep transition so the manager job can finish cleanly before the host sleeps.
-
-`.\scripts\shutdown.ps1`
-- Stops the homelab stack first.
-- Queues a short delayed Windows shutdown so the manager job can finish cleanly before the host powers off.
-
-The manager UI exposes the same sleep and shutdown actions.
-Wake stays outside this repo and remains the responsibility of the separate Wake Relay companion app.
-
-## Config
-
-Main runtime config lives in `config\homelab.json`:
-
-```json
-{
-  "hostname": "homelab-ai",
-  "openwebui_port": 3000,
-  "openwebui_image_tag": "v0.9.6",
-  "openwebui": {
-    "mcp_initialize_timeout": 30,
-    "kb_exec_enabled": false,
-    "profile_image_max_data_uri_size": null
-  },
-  "runtime": {
-    "container_backend": "windows-docker",
-    "wsl_distro": "Ubuntu",
-    "ollama_backend": "windows-process"
-  },
-  "management": {
-    "port": 3081,
-    "tailscale_https_port": 8443
-  },
-  "tts": {
-    "enabled": true,
-    "port": 8000,
-    "default_voice": "fr_FR-siwis-medium",
-    "fallback_voice": "en_US-lessac-medium"
-  },
-  "stt": {
-    "model": "medium",
-    "language": "",
-    "auto_update": false
-  }
-}
-```
-
-`hostname` can still be kept for compatibility, but the secure remote URL is discovered from Tailscale at runtime and should be treated as the source of truth for browser access.
-
-The `openwebui` block exposes a small set of repo-managed advanced settings:
-
-- `mcp_initialize_timeout`: increases the MCP handshake timeout for slower local tool servers.
-- `kb_exec_enabled`: turns the built-in knowledge base filesystem tool on or off.
-- `profile_image_max_data_uri_size`: optional cap for inline avatar and icon data URIs. `null` leaves it unset.
-
-Local-only secret overrides live in `config\homelab.local.json`:
-
-```json
-{
-  "webui_secret_key": "replace-with-a-long-random-secret",
-  "management_admin_secret": "replace-with-a-long-random-admin-secret",
-  "ollama": {
-    "models_path": "D:\\dev\\ollama"
-  }
-}
-```
-
-`config\homelab.local.json` is ignored by git. You can copy `config\homelab.local.example.json` as a starting point, or set `WEBUI_SECRET_KEY` and `MANAGEMENT_ADMIN_SECRET` in your shell environment instead.
-
-If `ollama.models_path` is set and the Ollama backend is `wsl-service`, `.\scripts\wsl-bootstrap.ps1` configures the WSL `ollama` service to use the translated Linux path, such as `/mnt/d/dev/ollama`. That lets the repo keep model blobs on `D:\dev\ollama` while the runtime stays inside WSL.
-
-Model config lives in `config\models.json`:
-
-```json
-{
-  "models": [
-    "qwen3:14b",
-    "qwen3:32b",
-    "qwen3:8b"
-  ]
-}
-```
-
-## Voice And Camera Mode
-
-For Open WebUI voice chat and camera mode:
-
-- Use the Tailscale HTTPS URL on remote devices. Browser microphone and camera APIs usually will not work correctly over plain remote HTTP.
-- Allow microphone and camera permissions in the browser.
-- Use `llava:13b` as the default model for voice+camera mode in this repo.
-- The startup scripts patch Open WebUI at runtime so voice/camera screenshots are normalized into Ollama-native base64 image payloads before the request reaches `llava:13b`.
-- If `llava:7b` answers as if it cannot see the image, switch to `llava:13b`. It is much more reliable for screenshots and camera frames in this stack.
-- `qwen3.5:9b` is the recommended fallback when you want another vision-capable option.
-- Do not use `qwen3-coder` for camera mode. It is a text/code model, not the recommended multimodal target here.
-- If voice/camera still says it cannot access the image after a restart, the next place to inspect is the live Open WebUI payload path rather than Ollama itself.
-- If you want a cleaner picker in Open WebUI, create a Workspace model preset such as `voice-vision` backed by `llava:13b`.
-
-## Logs
-
-Every script run writes a timestamped log file to `logs/`. Those logs are local working files and are ignored by git.
-
-The manager also writes runtime state, pending apply metadata, sessions, and job logs under `state/manager/`. That directory is also ignored by git.
-
-## Docs
-
-- [Changelog](./CHANGELOG.md)
-- [Repository Map](./docs/repository-map.md)
-- [Wake-on-LAN Setup Guide](./docs/wake-on-lan.md)
+[MIT](./LICENSE)

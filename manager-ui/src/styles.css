@@ -543,11 +543,32 @@ a {
 }
 
 .link-list,
+.channel-list,
 .action-layout,
 .form-grid {
   display: grid;
   gap: 12px;
   min-width: 0;
+}
+
+.channel-row {
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+  min-width: 0;
+}
+
+.channel-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .action-group {
@@ -956,7 +977,7 @@ a {
   }
 
   .nav-list-mobile {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 4px;
   }
 

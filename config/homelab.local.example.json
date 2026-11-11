@@ -1,6 +1,25 @@
 {
   "webui_secret_key": "replace-with-a-long-random-secret",
   "management_admin_secret": "replace-with-a-long-random-admin-secret",
+  "hermes": {
+    "api_server_key": "replace-with-a-long-random-hermes-api-key",
+    "discord": {
+      "bot_token": "replace-with-discord-bot-token",
+      "allowed_users": "123456789012345678",
+      "allowed_roles": "",
+      "home_channel": ""
+    },
+    "photon": {
+      "project_id": "",
+      "project_secret": "",
+      "allowed_users": "+15551234567",
+      "home_channel": "",
+      "home_channel_name": "",
+      "node_bin": "",
+      "dashboard_host": "",
+      "spectrum_host": ""
+    }
+  },
   "ollama": {
     "models_path": "D:\\dev\\ollama"
   }

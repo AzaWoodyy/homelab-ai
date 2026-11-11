@@ -107,6 +107,58 @@ function Get-HomelabConfig {
     $voiceVisionFallbackModel = "qwen3.5:9b"
     $managementPort = 3081
     $managementTailscaleHttpsPort = 8443
+    $hermesEnabled = $false
+    $hermesHome = "state\hermes"
+    $hermesModel = "hermes3:8b"
+    $hermesGatewayEnabled = $true
+    $hermesApiServerEnabled = $true
+    $hermesApiServerHost = "127.0.0.1"
+    $hermesApiServerPort = 8642
+    $hermesApiServerModelName = "Hermes Agent"
+    $hermesDiscordEnabled = $true
+    $hermesDiscordRequireMention = $true
+    $hermesDiscordFreeResponseChannels = ""
+    $hermesEmailEnabled = $false
+    $hermesEmailImapPort = 993
+    $hermesEmailSmtpPort = 587
+    $hermesEmailPollInterval = 15
+    $hermesPhotonEnabled = $true
+    $hermesPhotonSidecarPort = 8789
+    $hermesPhotonSidecarAutostart = $true
+    $hermesPhotonRequireMention = $false
+    $hermesPhotonMentionPatterns = ""
+    $hermesWhatsappCloudEnabled = $false
+    $hermesWhatsappCloudWebhookHost = "127.0.0.1"
+    $hermesWhatsappCloudWebhookPort = 8090
+    $hermesWhatsappCloudWebhookPath = "/whatsapp/webhook"
+    $hermesWhatsappCloudApiVersion = "v20.0"
+    $hermesApiServerKey = ""
+    $hermesDiscordBotToken = ""
+    $hermesDiscordAllowedUsers = ""
+    $hermesDiscordAllowedRoles = ""
+    $hermesDiscordHomeChannel = ""
+    $hermesEmailAddress = ""
+    $hermesEmailPassword = ""
+    $hermesEmailImapHost = ""
+    $hermesEmailSmtpHost = ""
+    $hermesEmailAllowedUsers = ""
+    $hermesEmailHomeAddress = ""
+    $hermesPhotonProjectId = ""
+    $hermesPhotonProjectSecret = ""
+    $hermesPhotonAllowedUsers = ""
+    $hermesPhotonHomeChannel = ""
+    $hermesPhotonHomeChannelName = ""
+    $hermesPhotonNodeBin = ""
+    $hermesPhotonDashboardHost = ""
+    $hermesPhotonSpectrumHost = ""
+    $hermesWhatsappCloudPhoneNumberId = ""
+    $hermesWhatsappCloudAccessToken = ""
+    $hermesWhatsappCloudAppSecret = ""
+    $hermesWhatsappCloudVerifyToken = ""
+    $hermesWhatsappCloudAllowedUsers = ""
+    $hermesWhatsappCloudHomeChannel = ""
+    $hermesWhatsappCloudAppId = ""
+    $hermesWhatsappCloudWabaId = ""
 
     $openWebUiMcpInitializeTimeout = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui", "mcp_initialize_timeout") -DefaultValue $openWebUiMcpInitializeTimeout)
     $openWebUiKbExecEnabled = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("openwebui", "kb_exec_enabled") -DefaultValue $openWebUiKbExecEnabled)
@@ -123,6 +175,59 @@ function Get-HomelabConfig {
     $voiceVisionFallbackModel = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("voice_vision_fallback_model") -DefaultValue $voiceVisionFallbackModel)
     $managementPort = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("management", "port") -DefaultValue $managementPort)
     $managementTailscaleHttpsPort = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("management", "tailscale_https_port") -DefaultValue $managementTailscaleHttpsPort)
+    $hermesEnabled = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "enabled") -DefaultValue $hermesEnabled)
+    $hermesHome = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "home") -DefaultValue $hermesHome)
+    $hermesModel = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "model") -DefaultValue $hermesModel)
+    $hermesGatewayEnabled = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "gateway", "enabled") -DefaultValue $hermesGatewayEnabled)
+    $hermesApiServerEnabled = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "api_server", "enabled") -DefaultValue $hermesApiServerEnabled)
+    $hermesApiServerHost = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "api_server", "host") -DefaultValue $hermesApiServerHost)
+    $hermesApiServerPort = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "api_server", "port") -DefaultValue $hermesApiServerPort)
+    $hermesApiServerModelName = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "api_server", "model_name") -DefaultValue $hermesApiServerModelName)
+    $hermesDiscordEnabled = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "discord", "enabled") -DefaultValue $hermesDiscordEnabled)
+    $hermesDiscordRequireMention = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "discord", "require_mention") -DefaultValue $hermesDiscordRequireMention)
+    $hermesDiscordFreeResponseChannels = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "discord", "free_response_channels") -DefaultValue $hermesDiscordFreeResponseChannels)
+    $hermesEmailEnabled = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "email", "enabled") -DefaultValue $hermesEmailEnabled)
+    $hermesEmailImapPort = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "email", "imap_port") -DefaultValue $hermesEmailImapPort)
+    $hermesEmailSmtpPort = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "email", "smtp_port") -DefaultValue $hermesEmailSmtpPort)
+    $hermesEmailPollInterval = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "email", "poll_interval") -DefaultValue $hermesEmailPollInterval)
+    $hermesPhotonEnabled = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "photon", "enabled") -DefaultValue $hermesPhotonEnabled)
+    $hermesPhotonSidecarPort = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "photon", "sidecar_port") -DefaultValue $hermesPhotonSidecarPort)
+    $hermesPhotonSidecarAutostart = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "photon", "sidecar_autostart") -DefaultValue $hermesPhotonSidecarAutostart)
+    $hermesPhotonRequireMention = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "photon", "require_mention") -DefaultValue $hermesPhotonRequireMention)
+    $hermesPhotonMentionPatterns = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "photon", "mention_patterns") -DefaultValue $hermesPhotonMentionPatterns)
+    $hermesWhatsappCloudEnabled = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "whatsapp_cloud", "enabled") -DefaultValue $hermesWhatsappCloudEnabled)
+    $hermesWhatsappCloudWebhookHost = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "whatsapp_cloud", "webhook_host") -DefaultValue $hermesWhatsappCloudWebhookHost)
+    $hermesWhatsappCloudWebhookPort = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "whatsapp_cloud", "webhook_port") -DefaultValue $hermesWhatsappCloudWebhookPort)
+    $hermesWhatsappCloudWebhookPath = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "whatsapp_cloud", "webhook_path") -DefaultValue $hermesWhatsappCloudWebhookPath)
+    $hermesWhatsappCloudApiVersion = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "whatsapp_cloud", "api_version") -DefaultValue $hermesWhatsappCloudApiVersion)
+
+    $hermesApiServerKey = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "api_server_key") -DefaultValue $hermesApiServerKey)
+    $hermesDiscordBotToken = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "discord", "bot_token") -DefaultValue $hermesDiscordBotToken)
+    $hermesDiscordAllowedUsers = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "discord", "allowed_users") -DefaultValue $hermesDiscordAllowedUsers)
+    $hermesDiscordAllowedRoles = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "discord", "allowed_roles") -DefaultValue $hermesDiscordAllowedRoles)
+    $hermesDiscordHomeChannel = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "discord", "home_channel") -DefaultValue $hermesDiscordHomeChannel)
+    $hermesEmailAddress = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "email", "address") -DefaultValue $hermesEmailAddress)
+    $hermesEmailPassword = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "email", "password") -DefaultValue $hermesEmailPassword)
+    $hermesEmailImapHost = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "email", "imap_host") -DefaultValue $hermesEmailImapHost)
+    $hermesEmailSmtpHost = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "email", "smtp_host") -DefaultValue $hermesEmailSmtpHost)
+    $hermesEmailAllowedUsers = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "email", "allowed_users") -DefaultValue $hermesEmailAllowedUsers)
+    $hermesEmailHomeAddress = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "email", "home_address") -DefaultValue $hermesEmailHomeAddress)
+    $hermesPhotonProjectId = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "photon", "project_id") -DefaultValue $hermesPhotonProjectId)
+    $hermesPhotonProjectSecret = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "photon", "project_secret") -DefaultValue $hermesPhotonProjectSecret)
+    $hermesPhotonAllowedUsers = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "photon", "allowed_users") -DefaultValue $hermesPhotonAllowedUsers)
+    $hermesPhotonHomeChannel = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "photon", "home_channel") -DefaultValue $hermesPhotonHomeChannel)
+    $hermesPhotonHomeChannelName = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "photon", "home_channel_name") -DefaultValue $hermesPhotonHomeChannelName)
+    $hermesPhotonNodeBin = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "photon", "node_bin") -DefaultValue $hermesPhotonNodeBin)
+    $hermesPhotonDashboardHost = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "photon", "dashboard_host") -DefaultValue $hermesPhotonDashboardHost)
+    $hermesPhotonSpectrumHost = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "photon", "spectrum_host") -DefaultValue $hermesPhotonSpectrumHost)
+    $hermesWhatsappCloudPhoneNumberId = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "whatsapp_cloud", "phone_number_id") -DefaultValue $hermesWhatsappCloudPhoneNumberId)
+    $hermesWhatsappCloudAccessToken = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "whatsapp_cloud", "access_token") -DefaultValue $hermesWhatsappCloudAccessToken)
+    $hermesWhatsappCloudAppSecret = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "whatsapp_cloud", "app_secret") -DefaultValue $hermesWhatsappCloudAppSecret)
+    $hermesWhatsappCloudVerifyToken = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "whatsapp_cloud", "verify_token") -DefaultValue $hermesWhatsappCloudVerifyToken)
+    $hermesWhatsappCloudAllowedUsers = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "whatsapp_cloud", "allowed_users") -DefaultValue $hermesWhatsappCloudAllowedUsers)
+    $hermesWhatsappCloudHomeChannel = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "whatsapp_cloud", "home_channel") -DefaultValue $hermesWhatsappCloudHomeChannel)
+    $hermesWhatsappCloudAppId = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "whatsapp_cloud", "app_id") -DefaultValue $hermesWhatsappCloudAppId)
+    $hermesWhatsappCloudWabaId = [string](Get-HomelabNestedPropertyValue -InputObject $localConfig -Path @("hermes", "whatsapp_cloud", "waba_id") -DefaultValue $hermesWhatsappCloudWabaId)
 
     if ($ttsPort -lt 1 -or $ttsPort -gt 65535) {
         throw "tts.port must be between 1 and 65535."
@@ -134,6 +239,30 @@ function Get-HomelabConfig {
 
     if ($managementTailscaleHttpsPort -lt 1 -or $managementTailscaleHttpsPort -gt 65535) {
         throw "management.tailscale_https_port must be between 1 and 65535."
+    }
+
+    if ($hermesApiServerPort -lt 1 -or $hermesApiServerPort -gt 65535) {
+        throw "hermes.api_server.port must be between 1 and 65535."
+    }
+
+    if ($hermesEmailImapPort -lt 1 -or $hermesEmailImapPort -gt 65535) {
+        throw "hermes.email.imap_port must be between 1 and 65535."
+    }
+
+    if ($hermesEmailSmtpPort -lt 1 -or $hermesEmailSmtpPort -gt 65535) {
+        throw "hermes.email.smtp_port must be between 1 and 65535."
+    }
+
+    if ($hermesEmailPollInterval -le 0) {
+        throw "hermes.email.poll_interval must be greater than 0."
+    }
+
+    if ($hermesPhotonSidecarPort -lt 1 -or $hermesPhotonSidecarPort -gt 65535) {
+        throw "hermes.photon.sidecar_port must be between 1 and 65535."
+    }
+
+    if ($hermesWhatsappCloudWebhookPort -lt 1 -or $hermesWhatsappCloudWebhookPort -gt 65535) {
+        throw "hermes.whatsapp_cloud.webhook_port must be between 1 and 65535."
     }
 
     if ($openWebUiMcpInitializeTimeout -le 0) {
@@ -170,6 +299,29 @@ function Get-HomelabConfig {
 
     $voiceVisionModel = $voiceVisionModel.Trim()
     $voiceVisionFallbackModel = $voiceVisionFallbackModel.Trim()
+    $hermesHome = $hermesHome.Trim()
+    $hermesModel = $hermesModel.Trim()
+    $hermesApiServerHost = $hermesApiServerHost.Trim()
+    $hermesApiServerModelName = $hermesApiServerModelName.Trim()
+    $hermesDiscordFreeResponseChannels = $hermesDiscordFreeResponseChannels.Trim()
+    $hermesPhotonMentionPatterns = $hermesPhotonMentionPatterns.Trim()
+    $hermesWhatsappCloudWebhookHost = $hermesWhatsappCloudWebhookHost.Trim()
+    $hermesWhatsappCloudWebhookPath = $hermesWhatsappCloudWebhookPath.Trim()
+    $hermesWhatsappCloudApiVersion = $hermesWhatsappCloudApiVersion.Trim()
+
+    if ([string]::IsNullOrWhiteSpace($hermesHome)) {
+        throw "hermes.home is required."
+    }
+
+    if (-not [System.IO.Path]::IsPathRooted($hermesHome)) {
+        $hermesHome = Join-Path $script:HomelabRoot $hermesHome
+    }
+
+    $hermesHome = [System.IO.Path]::GetFullPath($hermesHome)
+
+    if ($hermesEnabled -and [string]::IsNullOrWhiteSpace($hermesModel)) {
+        throw "hermes.model is required when Hermes is enabled."
+    }
 
     return [pscustomobject]@{
         hostname                 = $hostname
@@ -203,6 +355,58 @@ function Get-HomelabConfig {
         management_tailscale_https_port = $managementTailscaleHttpsPort
         management_startup       = "scheduled-task-user-logon"
         management_admin_secret  = $managementAdminSecret
+        hermes_enabled           = $hermesEnabled
+        hermes_home              = $hermesHome
+        hermes_model             = $hermesModel
+        hermes_gateway_enabled   = $hermesGatewayEnabled
+        hermes_api_server_enabled = $hermesApiServerEnabled
+        hermes_api_server_host   = $hermesApiServerHost
+        hermes_api_server_port   = $hermesApiServerPort
+        hermes_api_server_model_name = $hermesApiServerModelName
+        hermes_api_server_key    = $hermesApiServerKey.Trim()
+        hermes_discord_enabled   = $hermesDiscordEnabled
+        hermes_discord_require_mention = $hermesDiscordRequireMention
+        hermes_discord_free_response_channels = $hermesDiscordFreeResponseChannels
+        hermes_discord_bot_token = $hermesDiscordBotToken.Trim()
+        hermes_discord_allowed_users = $hermesDiscordAllowedUsers.Trim()
+        hermes_discord_allowed_roles = $hermesDiscordAllowedRoles.Trim()
+        hermes_discord_home_channel = $hermesDiscordHomeChannel.Trim()
+        hermes_email_enabled     = $hermesEmailEnabled
+        hermes_email_address     = $hermesEmailAddress.Trim()
+        hermes_email_password    = $hermesEmailPassword.Trim()
+        hermes_email_imap_host   = $hermesEmailImapHost.Trim()
+        hermes_email_smtp_host   = $hermesEmailSmtpHost.Trim()
+        hermes_email_imap_port   = $hermesEmailImapPort
+        hermes_email_smtp_port   = $hermesEmailSmtpPort
+        hermes_email_poll_interval = $hermesEmailPollInterval
+        hermes_email_allowed_users = $hermesEmailAllowedUsers.Trim()
+        hermes_email_home_address = $hermesEmailHomeAddress.Trim()
+        hermes_photon_enabled    = $hermesPhotonEnabled
+        hermes_photon_project_id = $hermesPhotonProjectId.Trim()
+        hermes_photon_project_secret = $hermesPhotonProjectSecret.Trim()
+        hermes_photon_sidecar_port = $hermesPhotonSidecarPort
+        hermes_photon_sidecar_autostart = $hermesPhotonSidecarAutostart
+        hermes_photon_allowed_users = $hermesPhotonAllowedUsers.Trim()
+        hermes_photon_home_channel = $hermesPhotonHomeChannel.Trim()
+        hermes_photon_home_channel_name = $hermesPhotonHomeChannelName.Trim()
+        hermes_photon_require_mention = $hermesPhotonRequireMention
+        hermes_photon_mention_patterns = $hermesPhotonMentionPatterns
+        hermes_photon_node_bin = $hermesPhotonNodeBin.Trim()
+        hermes_photon_dashboard_host = $hermesPhotonDashboardHost.Trim()
+        hermes_photon_spectrum_host = $hermesPhotonSpectrumHost.Trim()
+        hermes_whatsapp_cloud_enabled = $hermesWhatsappCloudEnabled
+        hermes_whatsapp_cloud_phone_number_id = $hermesWhatsappCloudPhoneNumberId.Trim()
+        hermes_whatsapp_cloud_access_token = $hermesWhatsappCloudAccessToken.Trim()
+        hermes_whatsapp_cloud_app_secret = $hermesWhatsappCloudAppSecret.Trim()
+        hermes_whatsapp_cloud_verify_token = $hermesWhatsappCloudVerifyToken.Trim()
+        hermes_whatsapp_cloud_allowed_users = $hermesWhatsappCloudAllowedUsers.Trim()
+        hermes_whatsapp_cloud_home_channel = $hermesWhatsappCloudHomeChannel.Trim()
+        hermes_whatsapp_cloud_app_id = $hermesWhatsappCloudAppId.Trim()
+        hermes_whatsapp_cloud_waba_id = $hermesWhatsappCloudWabaId.Trim()
+        hermes_whatsapp_cloud_webhook_host = $hermesWhatsappCloudWebhookHost
+        hermes_whatsapp_cloud_webhook_port = $hermesWhatsappCloudWebhookPort
+        hermes_whatsapp_cloud_webhook_path = $hermesWhatsappCloudWebhookPath
+        hermes_whatsapp_cloud_api_version = $hermesWhatsappCloudApiVersion
     }
 }
 
@@ -269,6 +473,27 @@ function Get-EditableHomelabConfig {
             language    = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("stt", "language") -DefaultValue "")
             auto_update = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("stt", "auto_update") -DefaultValue $false)
         }
+        hermes                     = [ordered]@{
+            enabled       = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "enabled") -DefaultValue $false)
+            model         = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "model") -DefaultValue "")
+            api_server    = [ordered]@{
+                enabled    = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "api_server", "enabled") -DefaultValue $true)
+                port       = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "api_server", "port") -DefaultValue 8642)
+                model_name = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "api_server", "model_name") -DefaultValue "Hermes Agent")
+            }
+            discord      = [ordered]@{
+                enabled                = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "discord", "enabled") -DefaultValue $true)
+                require_mention        = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "discord", "require_mention") -DefaultValue $true)
+                free_response_channels = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "discord", "free_response_channels") -DefaultValue "")
+            }
+            photon       = [ordered]@{
+                enabled          = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "photon", "enabled") -DefaultValue $true)
+                sidecar_port     = [int](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "photon", "sidecar_port") -DefaultValue 8789)
+                sidecar_autostart = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "photon", "sidecar_autostart") -DefaultValue $true)
+                require_mention  = [bool](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "photon", "require_mention") -DefaultValue $false)
+                mention_patterns = [string](Get-HomelabNestedPropertyValue -InputObject $rawConfig -Path @("hermes", "photon", "mention_patterns") -DefaultValue "")
+            }
+        }
     }
 }
 
@@ -323,6 +548,22 @@ function Save-EditableHomelabConfig {
         throw "openwebui.mcp_initialize_timeout must be greater than 0."
     }
 
+    if ($null -eq $EditableConfig.hermes) {
+        throw "hermes config is required."
+    }
+
+    if ([bool]$EditableConfig.hermes.enabled -and [string]::IsNullOrWhiteSpace([string]$EditableConfig.hermes.model)) {
+        throw "hermes.model is required when Hermes is enabled."
+    }
+
+    if ([int]$EditableConfig.hermes.api_server.port -le 0 -or [int]$EditableConfig.hermes.api_server.port -gt 65535) {
+        throw "hermes.api_server.port must be between 1 and 65535."
+    }
+
+    if ([int]$EditableConfig.hermes.photon.sidecar_port -le 0 -or [int]$EditableConfig.hermes.photon.sidecar_port -gt 65535) {
+        throw "hermes.photon.sidecar_port must be between 1 and 65535."
+    }
+
     $profileImageMaxDataUriSize = Get-HomelabObjectPropertyValue -InputObject $EditableConfig.openwebui -Name "profile_image_max_data_uri_size" -DefaultValue $null
     if ($null -ne $profileImageMaxDataUriSize -and -not [string]::IsNullOrWhiteSpace([string]$profileImageMaxDataUriSize)) {
         $profileImageMaxDataUriSize = [int]$profileImageMaxDataUriSize
@@ -355,6 +596,27 @@ function Save-EditableHomelabConfig {
     Set-HomelabObjectPropertyValue -InputObject $sttConfig -Name "model" -Value ([string]$EditableConfig.stt.model)
     Set-HomelabObjectPropertyValue -InputObject $sttConfig -Name "language" -Value ([string]$EditableConfig.stt.language)
     Set-HomelabObjectPropertyValue -InputObject $sttConfig -Name "auto_update" -Value ([bool]$EditableConfig.stt.auto_update)
+
+    $hermesConfig = Ensure-HomelabNestedObjectProperty -InputObject $rawConfig -Name "hermes"
+    Set-HomelabObjectPropertyValue -InputObject $hermesConfig -Name "enabled" -Value ([bool]$EditableConfig.hermes.enabled)
+    Set-HomelabObjectPropertyValue -InputObject $hermesConfig -Name "model" -Value ([string]$EditableConfig.hermes.model)
+
+    $hermesApiServerConfig = Ensure-HomelabNestedObjectProperty -InputObject $hermesConfig -Name "api_server"
+    Set-HomelabObjectPropertyValue -InputObject $hermesApiServerConfig -Name "enabled" -Value ([bool]$EditableConfig.hermes.api_server.enabled)
+    Set-HomelabObjectPropertyValue -InputObject $hermesApiServerConfig -Name "port" -Value ([int]$EditableConfig.hermes.api_server.port)
+    Set-HomelabObjectPropertyValue -InputObject $hermesApiServerConfig -Name "model_name" -Value ([string]$EditableConfig.hermes.api_server.model_name)
+
+    $hermesDiscordConfig = Ensure-HomelabNestedObjectProperty -InputObject $hermesConfig -Name "discord"
+    Set-HomelabObjectPropertyValue -InputObject $hermesDiscordConfig -Name "enabled" -Value ([bool]$EditableConfig.hermes.discord.enabled)
+    Set-HomelabObjectPropertyValue -InputObject $hermesDiscordConfig -Name "require_mention" -Value ([bool]$EditableConfig.hermes.discord.require_mention)
+    Set-HomelabObjectPropertyValue -InputObject $hermesDiscordConfig -Name "free_response_channels" -Value ([string]$EditableConfig.hermes.discord.free_response_channels)
+
+    $hermesPhotonConfig = Ensure-HomelabNestedObjectProperty -InputObject $hermesConfig -Name "photon"
+    Set-HomelabObjectPropertyValue -InputObject $hermesPhotonConfig -Name "enabled" -Value ([bool]$EditableConfig.hermes.photon.enabled)
+    Set-HomelabObjectPropertyValue -InputObject $hermesPhotonConfig -Name "sidecar_port" -Value ([int]$EditableConfig.hermes.photon.sidecar_port)
+    Set-HomelabObjectPropertyValue -InputObject $hermesPhotonConfig -Name "sidecar_autostart" -Value ([bool]$EditableConfig.hermes.photon.sidecar_autostart)
+    Set-HomelabObjectPropertyValue -InputObject $hermesPhotonConfig -Name "require_mention" -Value ([bool]$EditableConfig.hermes.photon.require_mention)
+    Set-HomelabObjectPropertyValue -InputObject $hermesPhotonConfig -Name "mention_patterns" -Value ([string]$EditableConfig.hermes.photon.mention_patterns)
 
     Write-JsonFile -Path $configPath -Value $rawConfig -Depth 10
 

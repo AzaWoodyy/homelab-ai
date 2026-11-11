@@ -102,7 +102,7 @@ if ($failures.Count -eq 0) {
 }
 
 Write-CheckLog "Running manager UI checks..." "STEP"
-$uiRoot = Join-Path $root "scripts\manager-ui"
+$uiRoot = Join-Path $root "manager-ui"
 Push-Location $uiRoot
 
 try {

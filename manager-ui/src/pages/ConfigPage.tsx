@@ -103,6 +103,77 @@ export function ConfigPage({ summary }: { summary: Summary }) {
             )}
           />
 
+          <div className="form-section">Hermes Agent</div>
+          <Controller
+            control={form.control}
+            name="hermes.enabled"
+            render={({ field }) => (
+              <SwitchField label="Hermes Agent" checked={field.value} onCheckedChange={field.onChange} />
+            )}
+          />
+          <Field label="Hermes model" error={form.formState.errors.hermes?.model?.message}>
+            <TextInput {...form.register("hermes.model")} />
+          </Field>
+          <Controller
+            control={form.control}
+            name="hermes.api_server.enabled"
+            render={({ field }) => (
+              <SwitchField label="Hermes API server" checked={field.value} onCheckedChange={field.onChange} />
+            )}
+          />
+          <Field label="Hermes API port" error={form.formState.errors.hermes?.api_server?.port?.message}>
+            <NumberInput min={1} max={65535} step={1} {...form.register("hermes.api_server.port", { valueAsNumber: true })} />
+          </Field>
+          <Field label="Hermes API model name" error={form.formState.errors.hermes?.api_server?.model_name?.message}>
+            <TextInput {...form.register("hermes.api_server.model_name")} />
+          </Field>
+
+          <div className="form-section">Hermes Channels</div>
+          <Controller
+            control={form.control}
+            name="hermes.discord.enabled"
+            render={({ field }) => (
+              <SwitchField label="Discord" checked={field.value} onCheckedChange={field.onChange} />
+            )}
+          />
+          <Controller
+            control={form.control}
+            name="hermes.discord.require_mention"
+            render={({ field }) => (
+              <SwitchField label="Discord require mention" checked={field.value} onCheckedChange={field.onChange} />
+            )}
+          />
+          <Field label="Discord free-response channels">
+            <TextInput {...form.register("hermes.discord.free_response_channels")} />
+          </Field>
+          <Controller
+            control={form.control}
+            name="hermes.photon.enabled"
+            render={({ field }) => (
+              <SwitchField label="Photon iMessage" checked={field.value} onCheckedChange={field.onChange} />
+            )}
+          />
+          <Field label="Photon sidecar port" error={form.formState.errors.hermes?.photon?.sidecar_port?.message}>
+            <NumberInput min={1} max={65535} step={1} {...form.register("hermes.photon.sidecar_port", { valueAsNumber: true })} />
+          </Field>
+          <Controller
+            control={form.control}
+            name="hermes.photon.sidecar_autostart"
+            render={({ field }) => (
+              <SwitchField label="Photon sidecar autostart" checked={field.value} onCheckedChange={field.onChange} />
+            )}
+          />
+          <Controller
+            control={form.control}
+            name="hermes.photon.require_mention"
+            render={({ field }) => (
+              <SwitchField label="Photon require mention" checked={field.value} onCheckedChange={field.onChange} />
+            )}
+          />
+          <Field label="Photon mention patterns">
+            <TextInput {...form.register("hermes.photon.mention_patterns")} />
+          </Field>
+
           <div className="form-actions">
             <Button type="submit" tone="primary" disabled={!form.formState.isDirty || mutation.isPending}>
               Save runtime config

@@ -286,6 +286,27 @@ Invoke-Check -Name "Validate installed models" -ScriptBlock {
     "All configured models are installed."
 }
 
+Invoke-Check -Name "Validate Hermes Agent configuration" -ScriptBlock {
+    if (-not $script:config.hermes_enabled) {
+        return New-SkippedCheckResult -Reason "Hermes Agent is disabled in config."
+    }
+
+    Assert-HermesConfigured -Config $script:config
+    [void](Sync-HermesRuntimeConfig -Config $script:config)
+    $version = Get-HermesVersion -Config $script:config
+
+    if ($script:config.hermes_api_server_enabled) {
+        $apiUrl = Get-HermesApiServerUrl -Config $script:config
+        $apiHealth = Test-HttpEndpoint -Url "$apiUrl/health" -TimeoutSeconds 5
+
+        if ((Test-HermesGatewayRunning -Config $script:config) -and -not $apiHealth.Ok) {
+            throw "Hermes gateway is running but the API server is not reachable at $apiUrl."
+        }
+    }
+
+    "Hermes Agent config is valid ($version)."
+}
+
 Invoke-Check -Name "Validate Open WebUI container" -ScriptBlock {
     if (-not $script:dockerDaemonReady) {
         return New-SkippedCheckResult -Reason "Docker daemon is not running."
