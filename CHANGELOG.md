@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Planned as 2.0.0: optional Hermes Agent gateway, plus a cleanup to publish the repository.
+## [2.0.0](https://github.com/AzaWoodyy/homelab-ai/releases/tag/2.0.0) - 2026-11-11
+
+Optional Hermes Agent gateway, plus a cleanup to publish the repository.
 
 ### Added
 
