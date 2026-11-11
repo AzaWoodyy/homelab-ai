@@ -41,7 +41,9 @@ services:
     restart: unless-stopped
 
   openedai-speech:
-    image: ghcr.io/matatonic/openedai-speech-min:latest
+    # Pinned by digest: upstream stopped tagging releases after 0.18.2 (2024-08),
+    # and this is the newer `latest` build from 2025-02-02.
+    image: ghcr.io/matatonic/openedai-speech-min@sha256:e82d719252fb1b861967f4f9abb8513f028ab9c1139451245688dbf34992b060
 
     container_name: openedai-speech
 
